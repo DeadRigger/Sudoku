@@ -2,7 +2,6 @@ import time
 import copy
 import sys
 import random as r
-import pygame.
 
 
 class Sudoku:
