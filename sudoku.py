@@ -3,6 +3,36 @@ import random as r
 import sys
 
 
+def output(a):
+    sys.stdout.write(str(a))
+
+
+def print_field(*args):
+    if not args:
+        output("No solution")
+        return
+
+    for i in range(9):
+        for f in args:
+            for j in range(9):
+                cell = f[i][j]
+                if cell == 0 or isinstance(cell, set):
+                    output('.')
+                else:
+                    output(cell)
+                if (j + 1) % 3 == 0 and j < 8:
+                    output(' |')
+
+                output(' ')
+            output('  ')
+        output('\n')
+
+        if (i + 1) % 3 == 0 and i < 8:
+            for f in args:
+                output("- - - + - - - + - - -   ")
+            output('\n')
+
+
 class Sudoku:
 
     def __init__(self):
@@ -87,19 +117,19 @@ class Sudoku:
 
     def solve(self):
         solution = copy.deepcopy(self.field)
-        if Sudoku.solveHelper(solution):
+        if self.solveHelper(solution):
             self.solution = solution
             return self.solution
         return None
 
-    def solveHelper(solution):
+    def solveHelper(self, solution):
         while True:
             minPossibleValueCountCell = None
             for rowIndex in range(9):
                 for columnIndex in range(9):
                     if solution[rowIndex][columnIndex] != 0:
                         continue
-                    possibleValues = Sudoku.findPossibleValues(rowIndex, columnIndex, solution)
+                    possibleValues = self.findPossibleValues(rowIndex, columnIndex, solution)
                     possibleValueCount = len(possibleValues)
                     if possibleValueCount == 0:
                         return False
@@ -116,26 +146,30 @@ class Sudoku:
         for v in minPossibleValueCountCell[1]:
             solutionCopy = copy.deepcopy(solution)
             solutionCopy[r][c] = v
-            if Sudoku.solveHelper(solutionCopy):
+            if self.solveHelper(solutionCopy):
                 for r in range(9):
                     for c in range(9):
                         solution[r][c] = solutionCopy[r][c]
                 return True
         return False
 
+    @staticmethod
     def findPossibleValues(rowIndex, columnIndex, puzzle):
         values = {v for v in range(1, 10)}
-        values -= Sudoku.getRowValues(rowIndex, puzzle)
-        values -= Sudoku.getColumnValues(columnIndex, puzzle)
-        values -= Sudoku.getBlockValues(rowIndex, columnIndex, puzzle)
+        values -= Sudoku.getRowValues(puzzle)
+        values -= Sudoku.getColumnValues(puzzle)
+        values -= Sudoku.getBlockValues(columnIndex, puzzle)
         return values
 
+    @staticmethod
     def getRowValues(rowIndex, puzzle):
         return set(puzzle[rowIndex][:])
 
+    @staticmethod
     def getColumnValues(columnIndex, puzzle):
         return {puzzle[r][columnIndex] for r in range(9)}
 
+    @staticmethod
     def getBlockValues(rowIndex, columnIndex, puzzle):
         blockRowStart = 3 * (rowIndex // 3)
         blockColumnStart = 3 * (columnIndex // 3)
@@ -145,43 +179,18 @@ class Sudoku:
             for c in range(3)
         }
 
-def check_correct(field):
-    for row in range(9):
-        for col in range(9):
-            if field[row][col] == 0 or \
-                    len(Sudoku.getRowValues(row, field)) != 9 or \
-                    len(Sudoku.getColumnValues(col, field)) != 9 or \
-                    len(Sudoku.getBlockValues(row, col, field)) != 9:
-                return False
+    @staticmethod
+    def check_correct(field):
+        for row in range(9):
+            for col in range(9):
+                if field[row][col] == 0 or \
+                        len(Sudoku.getRowValues(row, field)) != 9 or \
+                        len(Sudoku.getColumnValues(col, field)) != 9 or \
+                        len(Sudoku.getBlockValues(row, col, field)) != 9:
+                    return False
 
-    return True
-
-
-def output(a):
-    sys.stdout.write(str(a))
+        return True
 
 
-def print_field(*args):
-    if not args:
-        output("No solution")
-        return
-
-    for i in range(9):
-        for f in args:
-            for j in range(9):
-                cell = f[i][j]
-                if cell == 0 or isinstance(cell, set):
-                    output('.')
-                else:
-                    output(cell)
-                if (j + 1) % 3 == 0 and j < 8:
-                    output(' |')
-
-                output(' ')
-            output('  ')
-        output('\n')
-
-        if (i + 1) % 3 == 0 and i < 8:
-            for f in args:
-                output("- - - + - - - + - - -   ")
-            output('\n')
+s = Sudoku()
+print_field(s.field)
