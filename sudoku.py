@@ -191,6 +191,3 @@ class Sudoku:
 
         return True
 
-
-s = Sudoku()
-print_field(s.field)
