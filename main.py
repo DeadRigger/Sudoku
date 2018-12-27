@@ -1,35 +1,61 @@
-import pygame
 from pygame.locals import *
 
-from sudoku import Sudoku
-
+from sudoku import *
 
 # Constants and variable
 
-# Colors
-BACKGROUND = (0, 0, 0)
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GRAY = (125, 125, 125)
-LIGHT_BLUE = (64, 128, 255)
-GREEN = (0, 200, 64)
-YELLOW = (225, 225, 0)
-PINK = (230, 50, 230)
-
 # Event
 POS_DOWN = (0, 0)
-POS_UP = (0, 0)
 
 # Game
-START_POSX_FIELD = 12
-START_POSY_FIELD = 12
-CEIL_SIZE = 64
-BLOCK_SIZE = CEIL_SIZE * 3
-FPS = 1
+FPS = 24
 display_width = 600
-display_height = 600
+display_height = 800
 name_app = 'Sudoku'
-count = 1
+
+
+# Functions
+def event_handler():
+    for event in pygame.event.get():
+        if event.type == QUIT or (
+                event.type == KEYDOWN and (
+                event.key == K_ESCAPE or
+                event.key == K_q)
+        ):
+            pygame.quit()
+            quit()
+
+        elif event.type == KEYDOWN:
+            if s.hint_ceil is not None:
+                if 0 < event.key - 48 < 10:
+                    number = event.key - 48
+                    s.changeNumber(game_display, s.hint_ceil, number)
+
+        elif event.type == MOUSEBUTTONDOWN:
+            global POS_DOWN
+            POS_DOWN = event.pos
+            posy1 = s.pos_y
+            posy2 = s.pos_y + s.height
+            if event.pos[1] < posy1:
+                pass
+            elif posy1 <= event.pos[1] <= posy2:
+                pass
+            elif event.pos[1] > posy2:
+                pass
+
+        elif event.type == MOUSEBUTTONUP:
+            if event.pos == POS_DOWN:
+                posy1 = s.pos_y
+                posy2 = s.pos_y + s.height
+                if event.pos[1] < posy1:
+                    pass
+                elif posy1 <= event.pos[1] <= posy2:
+                    s.show(game_display, POS_DOWN)
+                elif event.pos[1] > posy2:
+                    number = int((event.pos[0] - 12) / 64 + 1)
+                    if number == int((POS_DOWN[0] - 12) / 64 + 1) and s.hint_ceil is not None:
+                        s.changeNumber(game_display, s.hint_ceil, number)
+
 
 # Initialization objects pygame
 pygame.init()
@@ -40,51 +66,14 @@ s = Sudoku()
 
 game_display.fill(WHITE)
 
+digits = pygame.Surface((576, 100))
+digits.fill(WHITE)
+for i in range(9):
+    text_button(digits, (i * 64 + 25, 10), str(i+1))
 
-# Functions
-def event_handler():
-    for event in pygame.event.get():
-        if event.type == QUIT or (
-                event.type == KEYDOWN and (
-                event.key == K_ESCAPE or
-                event.key == K_q
-        )):
-            pygame.quit()
-            quit()
-        elif event.type == MOUSEBUTTONDOWN:
-            POS_DOWN = event.pos
-        elif event.type == MOUSEBUTTONUP:
-            if event.pos == POS_DOWN:
-                print(event.pos)
+game_display.blit(digits, (12, 700))
 
-
-for brow in range(3):
-    for bcol in range(3):
-        POSX_BLOCK = START_POSX_FIELD + BLOCK_SIZE * bcol
-        POSY_BLOCK = START_POSX_FIELD + BLOCK_SIZE * brow
-        pygame.draw.rect(game_display, BLACK,
-                         (POSX_BLOCK,
-                          POSY_BLOCK,
-                          BLOCK_SIZE, BLOCK_SIZE), 2)
-        for srow in range(3):
-            for scol in range(3):
-                POSX_CEIL = POSX_BLOCK + CEIL_SIZE * scol
-                POSY_CEIL = POSY_BLOCK + CEIL_SIZE * srow
-                value = s.field[brow*3 + srow][bcol*3 + scol]
-
-                pygame.draw.rect(game_display, BLACK,
-                                 (POSX_CEIL, POSY_CEIL,
-                                  CEIL_SIZE, CEIL_SIZE), 1)
-                pygame.font.init()
-                font = pygame.font.SysFont('Comic Sans MS', 30)
-                if value == 0:
-                    number = font.render('', False, BLACK)
-                else:
-                    number = font.render(str(value), False, BLACK)
-                game_display.blit(number, (POSX_CEIL + 25, POSY_CEIL + 10))
-
-# Display update
-pygame.display.update()
+s.show(game_display)
 
 # Main loop
 while True:

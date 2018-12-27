@@ -19,15 +19,17 @@ RED = (255, 0, 0)
 
 # Game
 START_POSX_FIELD = 12
-START_POSY_FIELD = 62
+START_POSY_FIELD = 112
 CEIL_SIZE = 64
 BLOCK_SIZE = CEIL_SIZE * 3
-DIFFICULTY = {
-    'easy': 40,
+DIFFICULTY_LIST = {
+    'easy': 70,
     'medium': 31,
     'hard': 22
 }
-
+font_name = 'Arial'
+font_size = 30
+difficulty = 'easy'
 
 def output(a):
     sys.stdout.write(str(a))
@@ -60,6 +62,13 @@ def print_field(*args):
             output('\n')
 
 
+def text_button(screen, coords, text):
+    pygame.font.init()
+    font = pygame.font.SysFont(font_name, font_size)
+    number = font.render(text, False, BLACK)
+    screen.blit(number, coords)
+
+
 class Sudoku:
 
     def __init__(self):
@@ -74,6 +83,11 @@ class Sudoku:
             [6, 7, 8, 3, 4, 5, 9, 1, 2],
             [9, 1, 2, 6, 7, 8, 3, 4, 5]
         ]
+        self.pos_x = START_POSX_FIELD
+        self.pos_y = START_POSY_FIELD
+        self.width = CEIL_SIZE * 9
+        self.height = self.width
+        self.count_unfilled_ceil = 0
         self.field = [[None for i in range(9)] for j in range(9)]
         self.bin_field = [[False for i in range(9)] for j in range(9)]
         self.solution = [[None for i in range(9)] for j in range(9)]
@@ -141,9 +155,10 @@ class Sudoku:
     def hideNumbers(self):
         for row in range(9):
             for col in range(9):
-                if r.randrange(0, 81) > DIFFICULTY['medium']:
+                if r.randrange(0, 81) > DIFFICULTY_LIST[difficulty]:
                     self.field[row][col] = 0
                     self.bin_field[row][col] = True
+                    self.count_unfilled_ceil += 1
 
     def solve(self):
         solution = copy.deepcopy(self.field)
@@ -189,7 +204,8 @@ class Sudoku:
         if pos_click is not None:
             ceil_x = int((pos_click[1] - START_POSY_FIELD) / CEIL_SIZE)
             ceil_y = int((pos_click[0] - START_POSX_FIELD) / CEIL_SIZE)
-            if self.bin_field[ceil_x][ceil_y]:
+
+            if 0 <= ceil_x < 9 and 0 <= ceil_y < 9 and self.bin_field[ceil_x][ceil_y]:
                 if self.hint_ceil is not None:
                     self.drawCeil(screen, self.hint_ceil[0], self.hint_ceil[1], CEIL_SIZE, WHITE)
                 self.hint_ceil = (ceil_x, ceil_y)
@@ -211,9 +227,9 @@ class Sudoku:
                         pos_ceil = self.drawCeil(screen, ceil_x, ceil_y, CEIL_SIZE, BLACK, 1)
 
                         pygame.font.init()
-                        font = pygame.font.SysFont('Comic Sans MS', 30)
+                        font = pygame.font.SysFont(font_name, font_size)
                         if value == 0:
-                            number = font.render('', False, BLACK)
+                            number = font.render('', True, BLACK)
                         else:
                             # check for value editable
                             if self.bin_field[ceil_x][ceil_y]:
@@ -223,25 +239,35 @@ class Sudoku:
                                 # checking for correct value
                                 if value in self.findPossibleValues(ceil_x, ceil_y, copy_field):
                                     # a blue digit
-                                    number = font.render(str(value), False, BLUE)
+                                    number = font.render(str(value), True, BLUE)
                                 else:
                                     # a red digit
-                                    number = font.render(str(value), False, RED)
+                                    number = font.render(str(value), True, RED)
                                 copy_field.clear()
                             else:
                                 # a black digit
-                                number = font.render(str(value), False, BLACK)
+                                number = font.render(str(value), True, BLACK)
                         screen.blit(number, (pos_ceil[0] + 25, pos_ceil[1] + 10))
+
+        if self.count_unfilled_ceil == 0 and self.check_correct(self.field):
+            win = pygame.Surface((self.width, self.height))
+            win.set_alpha(100)
+            win.fill(WHITE)
+            text_button(win, (250, 250), 'WINNER')
+            screen.blit(win, (START_POSX_FIELD, START_POSY_FIELD))
 
         # Display update
         pygame.display.update()
 
     # change value in ceil
-    def changeNumber(self, screen, coordinate, num):
-        if self.field[coordinate[0]][coordinate[1]] is not num:
-            self.field[coordinate[0]][coordinate[1]] = num
+    def changeNumber(self, screen, coord, num):
+        if self.field[coord[0]][coord[1]] is not num:
+            self.field[coord[0]][coord[1]] = num
+            self.count_unfilled_ceil -= 1
         else:
-            self.field[coordinate[0]][coordinate[1]] = 0
+            self.field[coord[0]][coord[1]] = 0
+            self.count_unfilled_ceil += 1
+
         self.show(screen)
 
     @staticmethod
