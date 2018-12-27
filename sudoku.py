@@ -23,13 +23,14 @@ START_POSY_FIELD = 112
 CEIL_SIZE = 64
 BLOCK_SIZE = CEIL_SIZE * 3
 DIFFICULTY_LIST = {
-    'easy': 70,
+    'easy': 40,
     'medium': 31,
     'hard': 22
 }
 font_name = 'Arial'
 font_size = 30
-difficulty = 'easy'
+difficulty = 'medium'
+
 
 def output(a):
     sys.stdout.write(str(a))
@@ -62,9 +63,9 @@ def print_field(*args):
             output('\n')
 
 
-def text_button(screen, coords, text):
+def text_button(screen, coords, text, size=font_size):
     pygame.font.init()
-    font = pygame.font.SysFont(font_name, font_size)
+    font = pygame.font.SysFont(font_name, size)
     number = font.render(text, False, BLACK)
     screen.blit(number, coords)
 
@@ -247,7 +248,7 @@ class Sudoku:
                             else:
                                 # a black digit
                                 number = font.render(str(value), True, BLACK)
-                        screen.blit(number, (pos_ceil[0] + 25, pos_ceil[1] + 10))
+                        screen.blit(number, (pos_ceil[0] + 25, pos_ceil[1] + 15))
 
         if self.count_unfilled_ceil == 0 and self.check_correct(self.field):
             win = pygame.Surface((self.width, self.height))
