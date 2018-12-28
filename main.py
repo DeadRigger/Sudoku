@@ -1,17 +1,8 @@
-from pygame.locals import *
-
 from sudoku import *
-
-# Constants and variable
+from menu import Menu
 
 # Event
 POS_DOWN = (0, 0)
-
-# Game
-FPS = 24
-display_width = 600
-display_height = 800
-name_app = 'Sudoku'
 
 
 # Functions
@@ -48,13 +39,18 @@ def event_handler():
                 posy1 = s.pos_y
                 posy2 = s.pos_y + s.height
                 if event.pos[1] < posy1:
-                    if (35, 25) <= event.pos <= (75, 55):
-                        if m.open:
+                    if m.open:
+                        if (35, 25) <= event.pos <= (75, 55):
                             m.hide()
-                            pygame.display.update()
                         else:
+                            if m.change_level(event.pos):
+                                restart()
+                            else:
+                                m.hide()
+                    else:
+                        if (35, 25) <= event.pos <= (75, 55):
                             m.show()
-                            pygame.display.update()
+
                 elif posy1 <= event.pos[1] <= posy2:
                     s.show(game_display, POS_DOWN)
                 elif event.pos[1] > posy2:
@@ -72,51 +68,17 @@ def display_footer():
     game_display.blit(digits, (12, 700))
 
 
-class Menu:
-    def __init__(self, screen):
-        self.open = False
-        self.screen = screen
-        self.menu = pygame.Surface((576, 100))
-        self.menu.fill(WHITE)
+def restart():
+    global s
+    global m
+    s = Sudoku()
+    m = Menu(game_display)
 
-        pygame.font.init()
-        font = pygame.font.SysFont(font_name, 25)
-        self.new = font.render('New', False, BLACK)
-        self.easy = font.render('Easy', False, BLACK)
-        self.medium = font.render('Medium', False, BLACK)
-        self.hard = font.render('Hard', False, BLACK)
+    game_display.fill(WHITE)
 
-    def display(self):
-        self.menu.blit(self.new, (35, 25))
-        pygame.draw.rect(self.menu, GRAY,
-                         (self.new.get_rect()[0] + 35, self.new.get_rect()[1] + 25,
-                          self.new.get_rect()[2], self.new.get_rect()[3]), 1)
-        self.screen.blit(self.menu, (0, 0))
-
-    def show(self):
-        # Draw item easy level
-        pos_x = 35 + self.new.get_rect()[2] + 5
-        pos_y = 25
-        self.menu.blit(self.easy, (pos_x, pos_y))
-        pygame.draw.rect(self.menu, GRAY, (pos_x, pos_y, self.easy.get_rect()[2], self.easy.get_rect()[3]), 1)
-
-        # Draw item medium level
-        pos_x += self.easy.get_rect()[2] + 5
-        self.menu.blit(self.medium, (pos_x, pos_y))
-        pygame.draw.rect(self.menu, GRAY, (pos_x, pos_y, self.medium.get_rect()[2], self.medium.get_rect()[3]), 1)
-
-        # Draw item hard level
-        pos_x += self.medium.get_rect()[2] + 5
-        self.menu.blit(self.hard, (pos_x, pos_y))
-        pygame.draw.rect(self.menu, GRAY, (pos_x, pos_y, self.hard.get_rect()[2], self.hard.get_rect()[3]), 1)
-
-        self.open = True
-        self.display()
-
-    def hide(self):
-        self.menu.fill(WHITE)
-        self.open = False
-        self.display()
+    m.display()
+    display_footer()
+    s.show(game_display)
 
 
 # Initialization objects pygame
