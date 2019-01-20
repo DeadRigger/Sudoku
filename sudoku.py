@@ -125,17 +125,22 @@ class Sudoku:
 		return False
 
 	# Display
-	def activateCeil(self, ceil):
-		if self.empty_ceils[ceil['row']][ceil['col']]:
-			self.active_ceil = [ceil['row'], ceil['col']]
+	def activateCeil(self, ceil, text=None):
+		if self.empty_ceils[ceil[0]][ceil[1]]:
+			self.active_ceil = ceil
 			self.drawField(self.table)
 
-			print(self.findPossibleValues(self.table, ceil['row'], ceil['col']))
+			if text is not None:
+				start_point = (START_POINT[0] + self.size_ceil * ceil[1],
+							   START_POINT[1] + self.size_ceil * ceil[0])
+				self.drawNumber(text, start_point, self.size_ceil, color=COLOR_EDIT_NUM)
+
+			print(self.findPossibleValues(self.table, ceil[0], ceil[1]))
 
 	def drawField(self, field):
 		self.screen.fill(BACKGROUND)
 		pygame.font.init()
-		pygame.draw.rect(self.screen, [200, 200, 200], self.field)  # draw field
+		pygame.draw.rect(self.screen, BACKGROUND_FIELD, self.field)  # draw field
 
 		for row in range(self.min_size):
 			for col in range(self.min_size):
@@ -164,7 +169,7 @@ class Sudoku:
 
 	def drawCeil(self, start_point, size, border=1):
 		if not border:
-			pygame.draw.rect(self.screen, BLUE,
+			pygame.draw.rect(self.screen, COLOR_ACTIVE_CEIL,
 							 (start_point[0], start_point[1],
 							  size, size))
 		else:
@@ -173,11 +178,11 @@ class Sudoku:
 							  size, size),
 							 border)
 
-	def drawNumber(self, text, start_point, size):
+	def drawNumber(self, text, start_point, size_ceil, color=BASE_COLOR_FONT):
 		font = pygame.font.SysFont(FONT['name'], FONT['size'])
-		number = font.render(str(text), True, BLACK)
-		pos_num_x = start_point[0] + (size - number.get_width()) / 2
-		pos_num_y = start_point[1] + (size - number.get_height()) / 2
+		number = font.render(str(text), True, color)
+		pos_num_x = start_point[0] + (size_ceil - number.get_width()) / 2
+		pos_num_y = start_point[1] + (size_ceil - number.get_height()) / 2
 		self.screen.blit(number, (pos_num_x, pos_num_y))
 
 	# Test
