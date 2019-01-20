@@ -125,15 +125,19 @@ class Sudoku:
 		return False
 
 	# Display
-	def activateCeil(self, ceil, text=None):
+	def activateCeil(self, ceil, number=None):
 		if self.empty_ceils[ceil[0]][ceil[1]]:
 			self.active_ceil = ceil
 			self.drawField(self.table)
 
-			if text is not None:
+			if number is not None:
 				start_point = (START_POINT[0] + self.size_ceil * ceil[1],
 							   START_POINT[1] + self.size_ceil * ceil[0])
-				self.drawNumber(text, start_point, self.size_ceil, color=COLOR_EDIT_NUM)
+				self.table[ceil[0]][ceil[1]] = number
+				self.drawText(number, start_point, self.size_ceil, FONT, color=COLOR_EDIT_NUM)
+				if self.check_correct(self.table):
+					font = {'name': FONT['name'], 'size': self.size_ceil * 9 / 4}
+					self.drawText('Winner', START_POINT, self.size_ceil * 9, font, color=GREEN)
 
 			print(self.findPossibleValues(self.table, ceil[0], ceil[1]))
 
@@ -165,7 +169,7 @@ class Sudoku:
 
 				self.drawCeil(pos, self.size_ceil, self.border['ceil'])
 				if number is not None:
-					self.drawNumber(number, pos, self.size_ceil)
+					self.drawText(number, pos, self.size_ceil, FONT)
 
 	def drawCeil(self, start_point, size, border=1):
 		if not border:
@@ -178,8 +182,8 @@ class Sudoku:
 							  size, size),
 							 border)
 
-	def drawNumber(self, text, start_point, size_ceil, color=BASE_COLOR_FONT):
-		font = pygame.font.SysFont(FONT['name'], FONT['size'])
+	def drawText(self, text, start_point, size_ceil, font, color=BASE_COLOR_FONT):
+		font = pygame.font.SysFont(font['name'], font['size'])
 		number = font.render(str(text), True, color)
 		pos_num_x = start_point[0] + (size_ceil - number.get_width()) / 2
 		pos_num_y = start_point[1] + (size_ceil - number.get_height()) / 2
