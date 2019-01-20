@@ -1,261 +1,287 @@
 import copy
 import random as r
-from functions import *
-from pygame.locals import *
+from constants import *
+from itertools import product
+import pygame
 
 
 class Sudoku:
+	"""docstring for Sudoku"""
 
-    def __init__(self):
-        self.complete = [
-            [1, 2, 3, 4, 5, 6, 7, 8, 9],
-            [4, 5, 6, 7, 8, 9, 1, 2, 3],
-            [7, 8, 9, 1, 2, 3, 4, 5, 6],
-            [2, 3, 4, 8, 9, 1, 5, 6, 7],
-            [5, 6, 7, 2, 3, 4, 8, 9, 1],
-            [8, 9, 1, 5, 6, 7, 2, 3, 4],
-            [3, 4, 5, 9, 1, 2, 6, 7, 8],
-            [6, 7, 8, 3, 4, 5, 9, 1, 2],
-            [9, 1, 2, 6, 7, 8, 3, 4, 5]
-        ]
-        self.pos_x = START_POSX_FIELD
-        self.pos_y = START_POSY_FIELD
-        self.width = CEIL_SIZE * 9
-        self.height = self.width
-        self.count_unfilled_ceil = 0
-        self.field = [[None for i in range(9)] for j in range(9)]
-        self.bin_field = [[False for i in range(9)] for j in range(9)]
-        self.solution = [[None for i in range(9)] for j in range(9)]
-        self.cycle_generate = r.randrange(10, 30)
-        self.hint_ceil = None
-        self.generate()
+	def __init__(self, screen, field, position, size_ceil, border, size=3):
+		super(Sudoku, self).__init__()
+		self.base_table = [
+			[1, 2, 3, 4, 5, 6, 7, 8, 9],
+			[4, 5, 6, 7, 8, 9, 1, 2, 3],
+			[7, 8, 9, 1, 2, 3, 4, 5, 6],
+			[2, 3, 4, 8, 9, 1, 5, 6, 7],
+			[5, 6, 7, 2, 3, 4, 8, 9, 1],
+			[8, 9, 1, 5, 6, 7, 2, 3, 4],
+			[3, 4, 5, 9, 1, 2, 6, 7, 8],
+			[6, 7, 8, 3, 4, 5, 9, 1, 2],
+			[9, 1, 2, 6, 7, 8, 3, 4, 5]
+		]
+		self.screen = screen
+		self.field = field
+		self.start_point = position
+		self.size_ceil = size_ceil
+		self.min_size = size
+		self.size = size ** 2
+		self.border = border
+		self.height = size_ceil * size
+		self.width = size_ceil * size
+		self.active_ceil = None
+		self.table = [[None for i in range(self.size)] for j in range(self.size)]
+		self.empty_ceils = [[False for i in range(self.size)] for j in range(self.size)]
+		self.solution = []
+		self.difficult = 30
 
-    def generate(self):
-        for i in range(self.cycle_generate):
-            self.SwapBigRow()
-            self.SwapBigColumn()
-            for j in range(self.cycle_generate):
-                self.SwapSmallRow()
-                self.SwapSmallColumn()
+		self.cycle_generate = 30
+		self.generate()
+		self.drawField(self.table)
 
-        self.field = copy.deepcopy(self.complete)
-        self.hideNumbers()
+	# Generate
+	def generate(self):
+		self.table = copy.deepcopy(self.base_table)
 
-    def SwapBigRow(self):
-        row1 = r.randrange(0, 3)
-        row2 = r.randrange(0, 3)
+		mix_func = ['self.swapBigRow',
+					'self.swapBigColumn',
+					'self.swapSmallRow',
+					'self.swapSmallColumn']
 
-        while row1 == row2:
-            row2 = r.randrange(0, 3)
+		for i in range(1, self.cycle_generate):
+			id_func = r.randrange(0, len(mix_func), 1)
+			eval(mix_func[id_func])
 
-        for i in range(3):
-            self.complete[row1 * 3 + i], self.complete[row2 * 3 + i] = \
-                self.complete[row2 * 3 + i], self.complete[row1 * 3 + i]
+		self.changeDifficult()
 
-    def SwapBigColumn(self):
-        col1 = r.randrange(0, 3)
-        col2 = r.randrange(0, 3)
+	def swapBigRow(self):
+		row1 = r.randrange(0, self.min_size)
+		row2 = r.randrange(0, self.min_size)
 
-        while col1 == col2:
-            col2 = r.randrange(0, 3)
+		while row1 == row2:
+			row2 = r.randrange(0, self.min_size)
 
-        for c in range(3):
-            for i in range(9):
-                self.complete[i][col1 * 3 + c], self.complete[i][col2 * 3 + c] = \
-                    self.complete[i][col2 * 3 + c], self.complete[i][col1 * 3 + c]
+		for i in range(self.min_size):
+			self.table[row1 * self.min_size + i], self.table[row2 * self.min_size + i] = \
+				self.table[row2 * self.min_size + i], self.table[row1 * self.min_size + i]
 
-    def SwapSmallRow(self):
-        row = r.randrange(0, 3)
-        smallRow1 = r.randrange(0, 3)
-        smallRow2 = r.randrange(0, 3)
+	def swapBigColumn(self):
+		col1 = r.randrange(0, self.min_size)
+		col2 = r.randrange(0, self.min_size)
 
-        while smallRow1 == smallRow2:
-            smallRow2 = r.randrange(0, 3)
+		while col1 == col2:
+			col2 = r.randrange(0, self.min_size)
 
-        self.complete[row * 3 + smallRow1], self.complete[row * 3 + smallRow2] = \
-            self.complete[row * 3 + smallRow2], self.complete[row * 3 + smallRow1]
+		for c in range(self.min_size):
+			for i in range(self.size):
+				self.table[i][col1 * self.min_size + c], self.table[i][col2 * self.min_size + c] = \
+					self.table[i][col2 * self.min_size + c], self.table[i][col1 * self.min_size + c]
 
-    def SwapSmallColumn(self):
-        col = r.randrange(0, 3)
-        smallCol1 = r.randrange(0, 3)
-        smallCol2 = r.randrange(0, 3)
+	def swapSmallRow(self):
+		row = r.randrange(0, self.min_size)
+		smallRow1 = r.randrange(0, self.min_size)
+		smallRow2 = r.randrange(0, self.min_size)
 
-        while smallCol1 == smallCol2:
-            smallCol2 = r.randrange(0, 3)
+		while smallRow1 == smallRow2:
+			smallRow2 = r.randrange(0, self.min_size)
 
-        for i in range(9):
-            self.complete[i][col * 3 + smallCol1], self.complete[i][col * 3 + smallCol2] = \
-                self.complete[i][col * 3 + smallCol2], self.complete[i][col * 3 + smallCol1]
+		self.table[row * self.min_size + smallRow1], self.table[row * self.min_size + smallRow2] = \
+			self.table[row * self.min_size + smallRow2], self.table[row * self.min_size + smallRow1]
 
-    def hideNumbers(self):
-        for row in range(9):
-            for col in range(9):
-                if r.randrange(0, 81) > DIFFICULTY_LIST[difficulty]:
-                    self.field[row][col] = 0
-                    self.bin_field[row][col] = True
-                    self.count_unfilled_ceil += 1
+	def swapSmallColumn(self):
+		col = r.randrange(0, self.min_size)
+		smallCol1 = r.randrange(0, self.min_size)
+		smallCol2 = r.randrange(0, self.min_size)
 
-    def solve(self):
-        solution = copy.deepcopy(self.field)
-        if self.solveHelper(solution):
-            self.solution = solution
-            return self.solution
-        return None
+		while smallCol1 == smallCol2:
+			smallCol2 = r.randrange(0, self.min_size)
 
-    def solveHelper(self, solution):
-        while True:
-            minPossibleValueCountCell = None
-            for rowIndex in range(9):
-                for columnIndex in range(9):
-                    if solution[rowIndex][columnIndex] != 0:
-                        continue
-                    possibleValues = self.findPossibleValues(rowIndex, columnIndex, solution)
-                    possibleValueCount = len(possibleValues)
-                    if possibleValueCount == 0:
-                        return False
-                    if possibleValueCount == 1:
-                        solution[rowIndex][columnIndex] = possibleValues.pop()
-                    if not minPossibleValueCountCell or \
-                            possibleValueCount < len(minPossibleValueCountCell[1]):
-                        minPossibleValueCountCell = ((rowIndex, columnIndex), possibleValues)
-            if not minPossibleValueCountCell:
-                return True
-            elif 1 < len(minPossibleValueCountCell[1]):
-                break
-        r, c = minPossibleValueCountCell[0]
-        for v in minPossibleValueCountCell[1]:
-            solutionCopy = copy.deepcopy(solution)
-            solutionCopy[r][c] = v
-            if self.solveHelper(solutionCopy):
-                for r in range(9):
-                    for c in range(9):
-                        solution[r][c] = solutionCopy[r][c]
-                return True
-        return False
+		for i in range(self.size):
+			self.table[i][col * self.min_size + smallCol1], self.table[i][col * self.min_size + smallCol2] = \
+				self.table[i][col * self.min_size + smallCol2], self.table[i][col * self.min_size + smallCol1]
 
-    # display sudoku field
-    def show(self, screen, pos_click=None):
-        # check for click
-        if pos_click is not None:
-            ceil_x = int((pos_click[1] - START_POSY_FIELD) / CEIL_SIZE)
-            ceil_y = int((pos_click[0] - START_POSX_FIELD) / CEIL_SIZE)
+	def changeDifficult(self):
+		for i in range(self.size ** 2 - self.difficult):
+			row = r.randrange(0, self.size)
+			col = r.randrange(0, self.size)
+			while self.empty_ceils[row][col] and self.complicate(row, col):
+				row = r.randrange(0, self.size)
+				col = r.randrange(0, self.size)
 
-            if 0 <= ceil_x < 9 and 0 <= ceil_y < 9 and self.bin_field[ceil_x][ceil_y]:
-                if self.hint_ceil is not None:
-                    self.drawCeil(screen, self.hint_ceil[0], self.hint_ceil[1], CEIL_SIZE, WHITE)
-                self.hint_ceil = (ceil_x, ceil_y)
-                self.drawCeil(screen, ceil_x, ceil_y, CEIL_SIZE, LIGHT_BLUE)
-        # check for hint ceil
-        elif self.hint_ceil is not None:
-            # draw a blue ceil
-            self.drawCeil(screen, self.hint_ceil[0], self.hint_ceil[1], CEIL_SIZE, LIGHT_BLUE)
+			self.empty_ceils[row][col] = True
+			self.table[row][col] = None
 
-        for brow in range(3):
-            for bcol in range(3):
-                # draw block 3x3
-                self.drawCeil(screen, brow, bcol, BLOCK_SIZE, BLACK, 2)
-                for srow in range(3):
-                    for scol in range(3):
-                        ceil_x = brow * 3 + srow
-                        ceil_y = bcol * 3 + scol
-                        value = self.field[ceil_x][ceil_y]
-                        pos_ceil = self.drawCeil(screen, ceil_x, ceil_y, CEIL_SIZE, BLACK, 1)
+	def complicate(self, r, c):
+		grid = copy.deepcopy(self.table)
+		grid[r][c] = None
 
-                        pygame.font.init()
-                        font = pygame.font.SysFont(font_name, font_size)
-                        if value == 0:
-                            number = font.render('', True, BLACK)
-                        else:
-                            # check for value editable
-                            if self.bin_field[ceil_x][ceil_y]:
-                                copy_field = copy.deepcopy(self.field)
-                                copy_field[ceil_x][ceil_y] = 0
+		count = 0
+		for i in self.solve_sudoku(grid):
+			count += 1
+		if count == 1:
+			return True
 
-                                # checking for correct value
-                                if value in self.findPossibleValues(ceil_x, ceil_y, copy_field):
-                                    # a blue digit
-                                    number = font.render(str(value), True, BLUE)
-                                else:
-                                    # a red digit
-                                    number = font.render(str(value), True, RED)
-                                copy_field.clear()
-                            else:
-                                # a black digit
-                                number = font.render(str(value), True, BLACK)
-                        screen.blit(number, (pos_ceil[0] + 25, pos_ceil[1] + 15))
+		return False
 
-        if self.count_unfilled_ceil == 0 and self.check_correct(self.field):
-            win = pygame.Surface((self.width, self.height))
-            win.set_alpha(100)
-            win.fill(WHITE)
-            text_button(win, (250, 250), 'WINNER')
-            screen.blit(win, (START_POSX_FIELD, START_POSY_FIELD))
+	# Display
+	def activateCeil(self, ceil):
+		if self.empty_ceils[ceil['row']][ceil['col']]:
+			self.active_ceil = [ceil['row'], ceil['col']]
+			self.drawField(self.table)
 
-        # Display update
-        pygame.display.update()
+			print(self.findPossibleValues(self.table, ceil['row'], ceil['col']))
 
-    # change value in ceil
-    def changeNumber(self, screen, coord, num):
-        if self.field[coord[0]][coord[1]] is not num:
-            self.field[coord[0]][coord[1]] = num
-            self.count_unfilled_ceil -= 1
-        else:
-            self.field[coord[0]][coord[1]] = 0
-            self.count_unfilled_ceil += 1
+	def drawField(self, field):
+		self.screen.fill(BACKGROUND)
+		pygame.font.init()
+		pygame.draw.rect(self.screen, [200, 200, 200], self.field)  # draw field
 
-        self.show(screen)
+		for row in range(self.min_size):
+			for col in range(self.min_size):
+				size_block = self.size_ceil * self.min_size
+				start_point = (self.start_point[0] + col * size_block,
+							   self.start_point[1] + row * size_block)
+				self.drawBlock(start_point, row, col, size_block, field)
 
-    @staticmethod
-    def drawCeil(screen, row, col, size, color_rect=BLACK, border_width=None):
-        POSX_CEIL = START_POSX_FIELD + size * col
-        POSY_CEIL = START_POSY_FIELD + size * row
-        if border_width is None:
-            pygame.draw.rect(screen, color_rect,
-                             (POSX_CEIL, POSY_CEIL,
-                              size, size))
-        else:
-            pygame.draw.rect(screen, color_rect,
-                             (POSX_CEIL, POSY_CEIL,
-                              size, size),
-                             border_width)
+	def drawBlock(self, start_point, block_row, block_col, size, field):
+		self.drawCeil(start_point, size, self.border['block'])
 
-        return POSX_CEIL, POSY_CEIL
+		for row in range(self.min_size):
+			for col in range(self.min_size):
+				pos = (start_point[0] + col * self.size_ceil,
+					   start_point[1] + row * self.size_ceil)
+				ceil = [block_row * self.min_size + row, block_col * self.min_size + col]
 
-    # find the missing value
-    @staticmethod
-    def findPossibleValues(rowIndex, columnIndex, puzzle):
-        values = {v for v in range(1, 10)}
-        values -= Sudoku.getRowValues(rowIndex, puzzle)
-        values -= Sudoku.getColumnValues(columnIndex, puzzle)
-        values -= Sudoku.getBlockValues(rowIndex, columnIndex, puzzle)
-        return values
+				if self.active_ceil == ceil:
+					self.drawCeil(pos, self.size_ceil, border=0)
 
-    @staticmethod
-    def getRowValues(rowIndex, puzzle):
-        return set(puzzle[rowIndex][:])
+				number = field[ceil[0]][ceil[1]]
 
-    @staticmethod
-    def getColumnValues(columnIndex, puzzle):
-        return {puzzle[r][columnIndex] for r in range(9)}
+				self.drawCeil(pos, self.size_ceil, self.border['ceil'])
+				if number is not None:
+					self.drawNumber(number, pos, self.size_ceil)
 
-    @staticmethod
-    def getBlockValues(rowIndex, columnIndex, puzzle):
-        blockRowStart = 3 * (rowIndex // 3)
-        blockColumnStart = 3 * (columnIndex // 3)
-        return {
-            puzzle[blockRowStart + r][blockColumnStart + c]
-            for r in range(3)
-            for c in range(3)
-        }
+	def drawCeil(self, start_point, size, border=1):
+		if not border:
+			pygame.draw.rect(self.screen, BLUE,
+							 (start_point[0], start_point[1],
+							  size, size))
+		else:
+			pygame.draw.rect(self.screen, self.border['color'],
+							 (start_point[0], start_point[1],
+							  size, size),
+							 border)
 
-    @staticmethod
-    def check_correct(field):
-        for row in range(9):
-            for col in range(9):
-                if field[row][col] == 0 or \
-                        len(Sudoku.getRowValues(row, field)) != 9 or \
-                        len(Sudoku.getColumnValues(col, field)) != 9 or \
-                        len(Sudoku.getBlockValues(row, col, field)) != 9:
-                    return False
+	def drawNumber(self, text, start_point, size):
+		font = pygame.font.SysFont(FONT['name'], FONT['size'])
+		number = font.render(str(text), True, BLACK)
+		pos_num_x = start_point[0] + (size - number.get_width()) / 2
+		pos_num_y = start_point[1] + (size - number.get_height()) / 2
+		self.screen.blit(number, (pos_num_x, pos_num_y))
 
-        return True
+	# Test
+	def solve_sudoku(self, grid):
+		""" An efficient Sudoku solver using Algorithm X."""
+		R = self.min_size
+		C = self.min_size
+		N = R * C
+		X = ([("rc", rc) for rc in product(range(N), range(N))] +
+			 [("rn", rn) for rn in product(range(N), range(1, N + 1))] +
+			 [("cn", cn) for cn in product(range(N), range(1, N + 1))] +
+			 [("bn", bn) for bn in product(range(N), range(1, N + 1))])
+		Y = dict()
+		for r, c, n in product(range(N), range(N), range(1, N + 1)):
+			b = (r // R) * R + (c // C)  # Box number
+			Y[(r, c, n)] = [
+				("rc", (r, c)),
+				("rn", (r, n)),
+				("cn", (c, n)),
+				("bn", (b, n))]
+		X, Y = self.exact_cover(X, Y)
+		for i, row in enumerate(grid):
+			for j, n in enumerate(row):
+				if n:
+					self.select(X, Y, (i, j, n))
+		for solution in self.solve(X, Y, []):
+			for (r, c, n) in solution:
+				grid[r][c] = n
+			yield grid
+
+	@staticmethod
+	def exact_cover(X, Y):
+		X = {j: set() for j in X}
+		for i, row in Y.items():
+			for j in row:
+				X[j].add(i)
+		return X, Y
+
+	def solve(self, X, Y, solution):
+		if not X:
+			yield list(solution)
+		else:
+			c = min(X, key=lambda c: len(X[c]))
+			for r in list(X[c]):
+				solution.append(r)
+				cols = self.select(X, Y, r)
+				for s in self.solve(X, Y, solution):
+					yield s
+				self.deselect(X, Y, r, cols)
+				solution.pop()
+
+	@staticmethod
+	def select(X, Y, r):
+		cols = []
+		for j in Y[r]:
+			for i in X[j]:
+				for k in Y[i]:
+					if k != j:
+						X[k].remove(i)
+			cols.append(X.pop(j))
+		return cols
+
+	@staticmethod
+	def deselect(X, Y, r, cols):
+		for j in reversed(Y[r]):
+			X[j] = cols.pop()
+			for i in X[j]:
+				for k in Y[i]:
+					if k != j:
+						X[k].add(i)
+
+	def findPossibleValues(self, puzzle, rowIndex, columnIndex):
+		values = {v for v in range(1, self.size + 1)}
+		values -= self.getRowValues(puzzle, rowIndex)
+		values -= self.getColumnValues(puzzle, columnIndex)
+		values -= self.getBlockValues(puzzle, rowIndex, columnIndex)
+		return values
+
+	def check_correct(self, field):
+		for row in range(self.size):
+			for col in range(self.size):
+				if field[row][col] is None or \
+						len(self.getRowValues(field, row)) != self.size or \
+						len(self.getColumnValues(field, col)) != self.size or \
+						len(self.getBlockValues(field, row, col)) != self.size:
+					return False
+
+		return True
+
+	@staticmethod
+	def getRowValues(puzzle, rowIndex):
+		return set(puzzle[rowIndex][:])
+
+	@staticmethod
+	def getColumnValues(puzzle, columnIndex):
+		return {puzzle[r][columnIndex] for r in range(len(puzzle))}
+
+	@staticmethod
+	def getBlockValues(puzzle, rowIndex, columnIndex):
+		size = int(pow(len(puzzle), 0.5))
+		blockRowStart = size * (rowIndex // size)
+		blockColumnStart = size * (columnIndex // size)
+		return {
+			puzzle[blockRowStart + r][blockColumnStart + c]
+			for r in range(size)
+			for c in range(size)
+		}

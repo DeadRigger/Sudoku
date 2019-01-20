@@ -1,7 +1,7 @@
 # Constants and variable
 
 # Colors
-BACKGROUND = (0, 0, 0)
+BACKGROUND = (255, 255, 255)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (125, 125, 125)
@@ -14,18 +14,18 @@ RED = (255, 0, 0)
 
 # Game
 FPS = 24
-display_width = 600
-display_height = 800
-name_app = 'Sudoku'
-START_POSX_FIELD = 12
-START_POSY_FIELD = 112
-CEIL_SIZE = 64
-BLOCK_SIZE = CEIL_SIZE * 3
+NAME_APP = 'Sudoku'
+START_POINT = (10, 80)
+HEIGHT = 500
+WIDTH = HEIGHT - START_POINT[1] * 2 + START_POINT[0] * 2
 DIFFICULTY_LIST = {
-    'easy': 40,
-    'medium': 31,
-    'hard': 22
+	'easy': (33, 40),
+	'medium': (26, 33),
+	'hard': (20, 27)
 }
-font_name = 'Arial'
-font_size = 30
-difficulty = 'medium'
+FONT = {
+	'name': 'Comic San',
+	'size': 30
+}
+DIFFICULTY = 'medium'
+SIZE = 3
