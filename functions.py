@@ -34,8 +34,9 @@ def print_field(*args):
             output('\n')
 
 
-def text_button(screen, coords, text, size=FONT['size']):
-    pygame.font.init()
-    font = pygame.font.SysFont(FONT['name'], size)
-    number = font.render(text, False, BLACK)
-    screen.blit(number, coords)
+def drawCenterText(screen, text, rect, font=FONT, color=BASE_COLOR_FONT):
+    font = pygame.font.SysFont(font['name'], font['size'])
+    number = font.render(str(text), True, color)
+    pos_num_x = rect[0] + (rect[2] - number.get_width()) / 2
+    pos_num_y = rect[1] + (rect[3] - number.get_height()) / 2
+    screen.blit(number, (pos_num_x, pos_num_y))

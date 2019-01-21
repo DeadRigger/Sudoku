@@ -32,28 +32,27 @@ class Sudoku:
 		self.width = size_ceil * size
 		self.active_ceil = None
 		self.table = [[None for i in range(self.size)] for j in range(self.size)]
-		self.empty_ceils = [[False for i in range(self.size)] for j in range(self.size)]
+		self.empty_ceils = []
 		self.solution = []
-		self.difficult = 30
 
 		self.cycle_generate = 30
 		self.generate()
-		self.drawField(self.table)
 
 	# Generate
 	def generate(self):
 		self.table = copy.deepcopy(self.base_table)
 
-		mix_func = ['self.swapBigRow',
-					'self.swapBigColumn',
-					'self.swapSmallRow',
-					'self.swapSmallColumn']
+		mix_func = ['self.swapBigRow()',
+					'self.swapBigCol()',
+					'self.swapSmallRow()',
+					'self.swapSmallCol()']
 
 		for i in range(1, self.cycle_generate):
 			id_func = r.randrange(0, len(mix_func), 1)
 			eval(mix_func[id_func])
 
-		self.changeDifficult()
+		self.empty_ceils = [[False for i in range(self.size)] for j in range(self.size)]
+		self.changeDifficult(DIFFICULTY_LIST[DIFFICULTY])
 
 	def swapBigRow(self):
 		row1 = r.randrange(0, self.min_size)
@@ -66,7 +65,7 @@ class Sudoku:
 			self.table[row1 * self.min_size + i], self.table[row2 * self.min_size + i] = \
 				self.table[row2 * self.min_size + i], self.table[row1 * self.min_size + i]
 
-	def swapBigColumn(self):
+	def swapBigCol(self):
 		col1 = r.randrange(0, self.min_size)
 		col2 = r.randrange(0, self.min_size)
 
@@ -89,7 +88,7 @@ class Sudoku:
 		self.table[row * self.min_size + smallRow1], self.table[row * self.min_size + smallRow2] = \
 			self.table[row * self.min_size + smallRow2], self.table[row * self.min_size + smallRow1]
 
-	def swapSmallColumn(self):
+	def swapSmallCol(self):
 		col = r.randrange(0, self.min_size)
 		smallCol1 = r.randrange(0, self.min_size)
 		smallCol2 = r.randrange(0, self.min_size)
@@ -101,8 +100,8 @@ class Sudoku:
 			self.table[i][col * self.min_size + smallCol1], self.table[i][col * self.min_size + smallCol2] = \
 				self.table[i][col * self.min_size + smallCol2], self.table[i][col * self.min_size + smallCol1]
 
-	def changeDifficult(self):
-		for i in range(self.size ** 2 - self.difficult):
+	def changeDifficult(self, difficult):
+		for i in range(self.size ** 2 - difficult):
 			row = r.randrange(0, self.size)
 			col = r.randrange(0, self.size)
 			while self.empty_ceils[row][col] and self.complicate(row, col):
@@ -126,24 +125,18 @@ class Sudoku:
 
 	# Display
 	def activateCeil(self, ceil, number=None):
-		if self.empty_ceils[ceil[0]][ceil[1]]:
+		if ceil is not None:
 			self.active_ceil = ceil
+			if number is not None:
+				print(str(ceil) + ': ' + str(number))
+				if self.table[ceil[0]][ceil[1]] == number:
+					self.table[ceil[0]][ceil[1]] = None
+				else:
+					self.table[ceil[0]][ceil[1]] = number
+
 			self.drawField(self.table)
 
-			if number is not None:
-				start_point = (START_POINT[0] + self.size_ceil * ceil[1],
-							   START_POINT[1] + self.size_ceil * ceil[0])
-				self.table[ceil[0]][ceil[1]] = number
-				self.drawText(number, start_point, self.size_ceil, FONT, color=COLOR_EDIT_NUM)
-				if self.check_correct(self.table):
-					font = {'name': FONT['name'], 'size': self.size_ceil * 9 / 4}
-					self.drawText('Winner', START_POINT, self.size_ceil * 9, font, color=GREEN)
-
-			print(self.findPossibleValues(self.table, ceil[0], ceil[1]))
-
 	def drawField(self, field):
-		self.screen.fill(BACKGROUND)
-		pygame.font.init()
 		pygame.draw.rect(self.screen, BACKGROUND_FIELD, self.field)  # draw field
 
 		for row in range(self.min_size):
@@ -152,6 +145,10 @@ class Sudoku:
 				start_point = (self.start_point[0] + col * size_block,
 							   self.start_point[1] + row * size_block)
 				self.drawBlock(start_point, row, col, size_block, field)
+
+		if self.check_correct(field):
+			font = {'name': FONT['name'], 'size': int(self.size_ceil * 9 / 4)}
+			self.drawText('Winner', START_POINT, self.size_ceil * 9, font, color=GREEN)
 
 	def drawBlock(self, start_point, block_row, block_col, size, field):
 		self.drawCeil(start_point, size, self.border['block'])
@@ -162,14 +159,26 @@ class Sudoku:
 					   start_point[1] + row * self.size_ceil)
 				ceil = [block_row * self.min_size + row, block_col * self.min_size + col]
 
-				if self.active_ceil == ceil:
-					self.drawCeil(pos, self.size_ceil, border=0)
+				if self.active_ceil is not None:
+					active_number = field[self.active_ceil[0]][self.active_ceil[1]]
+					if self.active_ceil == ceil or \
+							(active_number is not None and field[ceil[0]][ceil[1]] == active_number):
+						self.drawCeil(pos, self.size_ceil, border=0)
 
 				number = field[ceil[0]][ceil[1]]
 
 				self.drawCeil(pos, self.size_ceil, self.border['ceil'])
 				if number is not None:
-					self.drawText(number, pos, self.size_ceil, FONT)
+					if self.empty_ceils[ceil[0]][ceil[1]]:
+						grid = copy.deepcopy(field)
+						grid[ceil[0]][ceil[1]] = None
+						possibleValues = self.findPossibleValues(grid, ceil[0], ceil[1])
+						if number in possibleValues:
+							self.drawText(number, pos, self.size_ceil, FONT, color=COLOR_EDIT_NUM)
+						else:
+							self.drawText(number, pos, self.size_ceil, FONT, color=RED)
+					else:
+						self.drawText(number, pos, self.size_ceil, FONT)
 
 	def drawCeil(self, start_point, size, border=1):
 		if not border:
@@ -259,11 +268,14 @@ class Sudoku:
 						X[k].add(i)
 
 	def findPossibleValues(self, puzzle, rowIndex, columnIndex):
-		values = {v for v in range(1, self.size + 1)}
-		values -= self.getRowValues(puzzle, rowIndex)
-		values -= self.getColumnValues(puzzle, columnIndex)
-		values -= self.getBlockValues(puzzle, rowIndex, columnIndex)
-		return values
+		if puzzle[rowIndex][columnIndex] is None:
+			values = {v for v in range(1, self.size + 1)}
+			values -= self.getRowValues(puzzle, rowIndex)
+			values -= self.getColumnValues(puzzle, columnIndex)
+			values -= self.getBlockValues(puzzle, rowIndex, columnIndex)
+			return values
+		else:
+			return
 
 	def check_correct(self, field):
 		for row in range(self.size):

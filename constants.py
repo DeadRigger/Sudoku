@@ -19,9 +19,9 @@ START_POINT = (10, 80)
 HEIGHT = 500
 WIDTH = HEIGHT - START_POINT[1] * 2 + START_POINT[0] * 2
 DIFFICULTY_LIST = {
-	'easy': (33, 40),
-	'medium': (26, 33),
-	'hard': (20, 27)
+	'easy': 30,
+	'medium': 25,
+	'hard': 20
 }
 FONT = {
 	'name': 'Comic San',
@@ -32,6 +32,6 @@ SIZE = 3
 
 COLOR_EDIT_NUM = BLUE
 COLOR_ACTIVE_CEIL = GRAY
-BASE_COLOR = BLACK
+BORDER_COLOR = BLACK
 BASE_COLOR_FONT = BLACK
 BACKGROUND_FIELD = [200, 200, 200]
