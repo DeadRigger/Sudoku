@@ -34,6 +34,7 @@ class Sudoku:
 		self.table = [[None for i in range(self.size)] for j in range(self.size)]
 		self.empty_ceils = []
 		self.solution = []
+		self.difficult = DIFFICULTY
 
 		self.cycle_generate = 30
 		self.generate()
@@ -57,7 +58,7 @@ class Sudoku:
 			grid = copy.deepcopy(self.table)
 			self.empty_ceils = [[False for i in range(self.size)] for j in range(self.size)]
 			diff = self.changeDifficult(grid)
-			if DIFFICULTY_LIST[DIFFICULTY][0] < diff < DIFFICULTY_LIST[DIFFICULTY][1]:
+			if DIFFICULTY_LIST[self.difficult][0] < diff <= DIFFICULTY_LIST[self.difficult][1]:
 				self.table = grid
 				print_field(self.table)
 				print("Difficult {}, iterations {}".format(str(diff), str(iteration)))

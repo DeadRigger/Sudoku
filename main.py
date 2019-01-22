@@ -66,8 +66,7 @@ class Menu:
 		self.display(point)
 
 	def changeLevel(self, difficult):
-		global DIFFICULTY
-		DIFFICULTY = difficult
+		s.difficult = difficult
 		s.generate()
 		for point in self.menu.keys():
 			self.menu[point]['show_submenu'] = False
