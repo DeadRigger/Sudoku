@@ -17,7 +17,7 @@ def print_field(*args):
         for f in args:
             for j in range(9):
                 cell = f[i][j]
-                if cell == 0 or isinstance(cell, set):
+                if cell is None or isinstance(cell, set):
                     output('.')
                 else:
                     output(cell)

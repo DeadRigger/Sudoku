@@ -1,6 +1,6 @@
 import copy
 import random as r
-from constants import *
+from functions import *
 from itertools import product
 import pygame
 
@@ -51,8 +51,17 @@ class Sudoku:
 			id_func = r.randrange(0, len(mix_func), 1)
 			eval(mix_func[id_func])
 
-		self.empty_ceils = [[False for i in range(self.size)] for j in range(self.size)]
-		self.changeDifficult(DIFFICULTY_LIST[DIFFICULTY])
+		iteration = 0
+		while True:
+			iteration += 1
+			grid = copy.deepcopy(self.table)
+			self.empty_ceils = [[False for i in range(self.size)] for j in range(self.size)]
+			diff = self.changeDifficult(grid)
+			if DIFFICULTY_LIST[DIFFICULTY][0] < diff < DIFFICULTY_LIST[DIFFICULTY][1]:
+				self.table = grid
+				print_field(self.table)
+				print("Difficult {}, iterations {}".format(str(diff), str(iteration)))
+				return
 
 	def swapBigRow(self):
 		row1 = r.randrange(0, self.min_size)
@@ -100,23 +109,27 @@ class Sudoku:
 			self.table[i][col * self.min_size + smallCol1], self.table[i][col * self.min_size + smallCol2] = \
 				self.table[i][col * self.min_size + smallCol2], self.table[i][col * self.min_size + smallCol1]
 
-	def changeDifficult(self, difficult):
-		for i in range(self.size ** 2 - difficult):
+	def changeDifficult(self, grid):
+		difficult = SIZE ** 4
+		while True:
 			row = r.randrange(0, self.size)
 			col = r.randrange(0, self.size)
-			while self.empty_ceils[row][col] and self.complicate(row, col):
+			while self.empty_ceils[row][col]:
+				if not self.complicate(grid, row, col):
+					return difficult
 				row = r.randrange(0, self.size)
 				col = r.randrange(0, self.size)
 
+			difficult -= 1
 			self.empty_ceils[row][col] = True
-			self.table[row][col] = None
+			grid[row][col] = None
 
-	def complicate(self, r, c):
-		grid = copy.deepcopy(self.table)
-		grid[r][c] = None
+	def complicate(self, grid, r, c):
+		table = copy.deepcopy(grid)
+		table[r][c] = None
 
 		count = 0
-		for i in self.solve_sudoku(grid):
+		for i in self.solve_sudoku(table):
 			count += 1
 		if count == 1:
 			return True

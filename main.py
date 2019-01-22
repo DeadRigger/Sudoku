@@ -53,7 +53,6 @@ class Menu:
 			if not self.menu[point]['show_submenu']:
 				self.menu[point]['show_submenu'] = True
 				for subpoint in self.menu[point]['submenu'].keys():
-					print(self.menu[point]['submenu'][subpoint]['draw'])
 					eval(self.menu[point]['submenu'][subpoint]['draw'])
 			else:
 				self.menu[point]['show_submenu'] = False
