@@ -27,7 +27,7 @@ FONT = {
 	'name': 'Comic San',
 	'size': 30
 }
-DIFFICULTY = 'medium'
+DIFFICULTY = 'easy'
 SIZE = 3
 
 COLOR_EDIT_NUM = BLUE

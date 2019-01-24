@@ -3,6 +3,7 @@ import random as r
 from functions import *
 from itertools import product
 import pygame
+import time
 
 
 class Sudoku:
@@ -41,6 +42,8 @@ class Sudoku:
 
 	# Generate
 	def generate(self):
+		tm = time.time()
+
 		self.table = copy.deepcopy(self.base_table)
 
 		mix_func = ['self.swapBigRow()',
@@ -57,11 +60,19 @@ class Sudoku:
 			iteration += 1
 			grid = copy.deepcopy(self.table)
 			self.empty_ceils = [[False for i in range(self.size)] for j in range(self.size)]
+			tm_diff = time.time()
 			diff = self.changeDifficult(grid)
+			print('Change  difficult iteration ' + str(iteration) + ' ' + str(time.time()-tm_diff) + ' sec.')
 			if DIFFICULTY_LIST[self.difficult][0] < diff <= DIFFICULTY_LIST[self.difficult][1]:
 				self.table = grid
 				print_field(self.table)
 				print("Difficult {}, iterations {}".format(str(diff), str(iteration)))
+				print('Generation time ' + str(time.time()-tm) + ' sec.')
+				grid = copy.deepcopy(self.table)
+				c = 0
+				for i in self.solve_sudoku(grid):
+					c += 1
+				print('Decisions ' + str(c))
 				return
 
 	def swapBigRow(self):
@@ -111,17 +122,29 @@ class Sudoku:
 				self.table[i][col * self.min_size + smallCol2], self.table[i][col * self.min_size + smallCol1]
 
 	def changeDifficult(self, grid):
-		difficult = SIZE ** 4
+		count_ceils = SIZE ** 4
+		count = 0
+		remove_ceils = list()
 		while True:
+			count += 1
 			row = r.randrange(0, self.size)
 			col = r.randrange(0, self.size)
 			while self.empty_ceils[row][col]:
-				if not self.complicate(grid, row, col):
-					return difficult
 				row = r.randrange(0, self.size)
 				col = r.randrange(0, self.size)
 
-			difficult -= 1
+			if count % 10 == 9:
+				if not self.complicate(grid, row, col):
+					for i in range(10):
+						ceil = remove_ceils.pop()
+						self.empty_ceils[ceil[0]][ceil[1]] = False
+						grid[ceil[0]][ceil[1]] = ceil[2]
+						if self.complicate(grid, ceil[0], ceil[1]):
+							self.empty_ceils[ceil[0]][ceil[1]] = True
+							grid[ceil[0]][ceil[1]] = None
+							return count_ceils - len(remove_ceils) + 1
+
+			remove_ceils.append((row, col, grid[row][col]))
 			self.empty_ceils[row][col] = True
 			grid[row][col] = None
 
@@ -218,10 +241,13 @@ class Sudoku:
 		R = self.min_size
 		C = self.min_size
 		N = R * C
-		X = ([("rc", rc) for rc in product(range(N), range(N))] +
-			 [("rn", rn) for rn in product(range(N), range(1, N + 1))] +
-			 [("cn", cn) for cn in product(range(N), range(1, N + 1))] +
-			 [("bn", bn) for bn in product(range(N), range(1, N + 1))])
+		X = dict()
+		for prod in product(range(N), range(1, N + 1)):
+			X[("rc", (prod[0], prod[1]-1))] = set()
+			X[("rn", prod)] = set()
+			X[("cn", prod)] = set()
+			X[("bn", prod)] = set()
+
 		Y = dict()
 		for r, c, n in product(range(N), range(N), range(1, N + 1)):
 			b = (r // R) * R + (c // C)  # Box number
@@ -230,7 +256,11 @@ class Sudoku:
 				("rn", (r, n)),
 				("cn", (c, n)),
 				("bn", (b, n))]
-		X, Y = self.exact_cover(X, Y)
+			X[("rc", (r, c))].add((r, c, n))
+			X[("rn", (r, n))].add((r, c, n))
+			X[("cn", (c, n))].add((r, c, n))
+			X[("bn", (b, n))].add((r, c, n))
+
 		for i, row in enumerate(grid):
 			for j, n in enumerate(row):
 				if n:
@@ -239,14 +269,6 @@ class Sudoku:
 			for (r, c, n) in solution:
 				grid[r][c] = n
 			yield grid
-
-	@staticmethod
-	def exact_cover(X, Y):
-		X = {j: set() for j in X}
-		for i, row in Y.items():
-			for j in row:
-				X[j].add(i)
-		return X, Y
 
 	def solve(self, X, Y, solution):
 		if not X:

@@ -1,375 +1,395 @@
-import pygame
-import copy
 import random as r
-from itertools import product
-
-# Colors
-BACKGROUND = (255, 255, 255)
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GRAY = (125, 125, 125)
-LIGHT_BLUE = (64, 128, 255)
-BLUE = (0, 0, 255)
-GREEN = (0, 200, 64)
-YELLOW = (225, 225, 0)
-PINK = (230, 50, 230)
-RED = (255, 0, 0)
-
-# Game
-FPS = 24
-NAME_APP = 'Sudoku'
-START_POINT = (10, 80)
-HEIGHT = 500
-WIDTH = HEIGHT - START_POINT[1] * 2 + START_POINT[0] * 2
-DIFFICULTY_LIST = {
-	'easy': (33, 40),
-	'medium': (26, 33),
-	'hard': (20, 27)
-}
-FONT = {
-	'name': 'Comic San',
-	'size': 30
-}
-DIFFICULTY = 'medium'
-SIZE = 3
+import sys
+import copy
 
 
-class Sudoku:
-	"""docstring for Sudoku"""
+def count_filled(grid):
+	size = len(grid)
+	count = 0
+	for r in range(size):
+		for c in range(size):
+			if grid[r][c]:
+				count += 1
 
-	def __init__(self, screen, field, position, size_ceil, border, size=3):
-		super(Sudoku, self).__init__()
-		self.base_table = [
-			[1, 2, 3, 4, 5, 6, 7, 8, 9],
-			[4, 5, 6, 7, 8, 9, 1, 2, 3],
-			[7, 8, 9, 1, 2, 3, 4, 5, 6],
-			[2, 3, 4, 8, 9, 1, 5, 6, 7],
-			[5, 6, 7, 2, 3, 4, 8, 9, 1],
-			[8, 9, 1, 5, 6, 7, 2, 3, 4],
-			[3, 4, 5, 9, 1, 2, 6, 7, 8],
-			[6, 7, 8, 3, 4, 5, 9, 1, 2],
-			[9, 1, 2, 6, 7, 8, 3, 4, 5]
-		]
-		self.screen = screen
-		self.field = field
-		self.start_point = position
-		self.size_ceil = size_ceil
-		self.min_size = size
-		self.size = size ** 2
-		self.border = border
-		self.height = size_ceil * size
-		self.width = size_ceil * size
-		self.active_ceil = None
-		self.table = [[None for i in range(self.size)] for j in range(self.size)]
-		self.empty_ceils = [[False for i in range(self.size)] for j in range(self.size)]
-		self.solution = []
-		self.difficult = 30
-
-		self.cycle_generate = 30
-		self.generate()
-		self.drawField(self.table)
-
-	# Generate
-	def generate(self):
-		self.table = copy.deepcopy(self.base_table)
-
-		mix_func = ['self.swapBigRow',
-					'self.swapBigColumn',
-					'self.swapSmallRow',
-					'self.swapSmallColumn']
-
-		for i in range(1, self.cycle_generate):
-			id_func = r.randrange(0, len(mix_func), 1)
-			eval(mix_func[id_func])
-
-		self.changeDifficult()
-
-	def swapBigRow(self):
-		row1 = r.randrange(0, self.min_size)
-		row2 = r.randrange(0, self.min_size)
-
-		while row1 == row2:
-			row2 = r.randrange(0, self.min_size)
-
-		for i in range(self.min_size):
-			self.table[row1 * self.min_size + i], self.table[row2 * self.min_size + i] = \
-				self.table[row2 * self.min_size + i], self.table[row1 * self.min_size + i]
-
-	def swapBigColumn(self):
-		col1 = r.randrange(0, self.min_size)
-		col2 = r.randrange(0, self.min_size)
-
-		while col1 == col2:
-			col2 = r.randrange(0, self.min_size)
-
-		for c in range(self.min_size):
-			for i in range(self.size):
-				self.table[i][col1 * self.min_size + c], self.table[i][col2 * self.min_size + c] = \
-					self.table[i][col2 * self.min_size + c], self.table[i][col1 * self.min_size + c]
-
-	def swapSmallRow(self):
-		row = r.randrange(0, self.min_size)
-		smallRow1 = r.randrange(0, self.min_size)
-		smallRow2 = r.randrange(0, self.min_size)
-
-		while smallRow1 == smallRow2:
-			smallRow2 = r.randrange(0, self.min_size)
-
-		self.table[row * self.min_size + smallRow1], self.table[row * self.min_size + smallRow2] = \
-			self.table[row * self.min_size + smallRow2], self.table[row * self.min_size + smallRow1]
-
-	def swapSmallColumn(self):
-		col = r.randrange(0, self.min_size)
-		smallCol1 = r.randrange(0, self.min_size)
-		smallCol2 = r.randrange(0, self.min_size)
-
-		while smallCol1 == smallCol2:
-			smallCol2 = r.randrange(0, self.min_size)
-
-		for i in range(self.size):
-			self.table[i][col * self.min_size + smallCol1], self.table[i][col * self.min_size + smallCol2] = \
-				self.table[i][col * self.min_size + smallCol2], self.table[i][col * self.min_size + smallCol1]
-
-	def changeDifficult(self):
-		for i in range(self.size ** 2 - self.difficult):
-			row = r.randrange(0, self.size)
-			col = r.randrange(0, self.size)
-			while self.empty_ceils[row][col] and self.complicate(row, col):
-				row = r.randrange(0, self.size)
-				col = r.randrange(0, self.size)
-
-			self.empty_ceils[row][col] = True
-			self.table[row][col] = None
-
-	def complicate(self, r, c):
-		grid = copy.deepcopy(self.table)
-		grid[r][c] = None
-
-		count = 0
-		for i in self.solve_sudoku(grid):
-			count += 1
-		if count == 1:
-			return True
-
-		return False
-
-	# Display
-	def activateCeil(self, ceil):
-		if self.empty_ceils[ceil['row']][ceil['col']]:
-			self.active_ceil = [ceil['row'], ceil['col']]
-			self.drawField(self.table)
-
-			print(self.findPossibleValues(self.table, ceil['row'], ceil['col']))
-
-	def drawField(self, field):
-		self.screen.fill(BACKGROUND)
-		pygame.font.init()
-		pygame.draw.rect(self.screen, [200, 200, 200], self.field)  # draw field
-
-		for row in range(self.min_size):
-			for col in range(self.min_size):
-				size_block = self.size_ceil * self.min_size
-				start_point = (self.start_point[0] + col * size_block,
-							   self.start_point[1] + row * size_block)
-				self.drawBlock(start_point, row, col, size_block, field)
-
-	def drawBlock(self, start_point, block_row, block_col, size, field):
-		self.drawCeil(start_point, size, self.border['block'])
-
-		for row in range(self.min_size):
-			for col in range(self.min_size):
-				pos = (start_point[0] + col * self.size_ceil,
-					   start_point[1] + row * self.size_ceil)
-				ceil = [block_row * self.min_size + row, block_col * self.min_size + col]
-
-				if self.active_ceil == ceil:
-					self.drawCeil(pos, self.size_ceil, border=0)
-
-				number = field[ceil[0]][ceil[1]]
-
-				self.drawCeil(pos, self.size_ceil, self.border['ceil'])
-				if number is not None:
-					self.drawNumber(number, pos, self.size_ceil)
-
-	def drawCeil(self, start_point, size, border=1):
-		if not border:
-			pygame.draw.rect(self.screen, BLUE,
-							 (start_point[0], start_point[1],
-							  size, size))
-		else:
-			pygame.draw.rect(self.screen, self.border['color'],
-							 (start_point[0], start_point[1],
-							  size, size),
-							 border)
-
-	def drawNumber(self, text, start_point, size):
-		font = pygame.font.SysFont(FONT['name'], FONT['size'])
-		number = font.render(str(text), True, BLACK)
-		pos_num_x = start_point[0] + (size - number.get_width()) / 2
-		pos_num_y = start_point[1] + (size - number.get_height()) / 2
-		self.screen.blit(number, (pos_num_x, pos_num_y))
-
-	# Test
-	def solve_sudoku(self, grid):
-		""" An efficient Sudoku solver using Algorithm X."""
-		R = self.min_size
-		C = self.min_size
-		N = R * C
-		X = ([("rc", rc) for rc in product(range(N), range(N))] +
-			 [("rn", rn) for rn in product(range(N), range(1, N + 1))] +
-			 [("cn", cn) for cn in product(range(N), range(1, N + 1))] +
-			 [("bn", bn) for bn in product(range(N), range(1, N + 1))])
-		Y = dict()
-		for r, c, n in product(range(N), range(N), range(1, N + 1)):
-			b = (r // R) * R + (c // C)  # Box number
-			Y[(r, c, n)] = [
-				("rc", (r, c)),
-				("rn", (r, n)),
-				("cn", (c, n)),
-				("bn", (b, n))]
-		X, Y = self.exact_cover(X, Y)
-		for i, row in enumerate(grid):
-			for j, n in enumerate(row):
-				if n:
-					self.select(X, Y, (i, j, n))
-		for solution in self.solve(X, Y, []):
-			for (r, c, n) in solution:
-				grid[r][c] = n
-			yield grid
-
-	@staticmethod
-	def exact_cover(X, Y):
-		X = {j: set() for j in X}
-		for i, row in Y.items():
-			for j in row:
-				X[j].add(i)
-		return X, Y
-
-	def solve(self, X, Y, solution):
-		if not X:
-			yield list(solution)
-		else:
-			c = min(X, key=lambda c: len(X[c]))
-			for r in list(X[c]):
-				solution.append(r)
-				cols = self.select(X, Y, r)
-				for s in self.solve(X, Y, solution):
-					yield s
-				self.deselect(X, Y, r, cols)
-				solution.pop()
-
-	@staticmethod
-	def select(X, Y, r):
-		cols = []
-		for j in Y[r]:
-			for i in X[j]:
-				for k in Y[i]:
-					if k != j:
-						X[k].remove(i)
-			cols.append(X.pop(j))
-		return cols
-
-	@staticmethod
-	def deselect(X, Y, r, cols):
-		for j in reversed(Y[r]):
-			X[j] = cols.pop()
-			for i in X[j]:
-				for k in Y[i]:
-					if k != j:
-						X[k].add(i)
-
-	def findPossibleValues(self, puzzle, rowIndex, columnIndex):
-		values = {v for v in range(1, self.size + 1)}
-		values -= self.getRowValues(puzzle, rowIndex)
-		values -= self.getColumnValues(puzzle, columnIndex)
-		values -= self.getBlockValues(puzzle, rowIndex, columnIndex)
-		return values
-
-	def check_correct(self, field):
-		for row in range(self.size):
-			for col in range(self.size):
-				if field[row][col] is None or \
-						len(self.getRowValues(field, row)) != self.size or \
-						len(self.getColumnValues(field, col)) != self.size or \
-						len(self.getBlockValues(field, row, col)) != self.size:
-					return False
-
-		return True
-
-	@staticmethod
-	def getRowValues(puzzle, rowIndex):
-		return set(puzzle[rowIndex][:])
-
-	@staticmethod
-	def getColumnValues(puzzle, columnIndex):
-		return {puzzle[r][columnIndex] for r in range(len(puzzle))}
-
-	@staticmethod
-	def getBlockValues(puzzle, rowIndex, columnIndex):
-		size = int(pow(len(puzzle), 0.5))
-		blockRowStart = size * (rowIndex // size)
-		blockColumnStart = size * (columnIndex // size)
-		return {
-			puzzle[blockRowStart + r][blockColumnStart + c]
-			for r in range(size)
-			for c in range(size)
-		}
+	# print('Filled ceils ' + str(count) + '\n')
+	return count
 
 
-def main():
-	pygame.init()
-	clock = pygame.time.Clock()
-	size = [WIDTH, HEIGHT]
+def print_grid(grid):
+	fill = 0
+	size = int(pow(len(grid), 0.5))
+	for br in range(size):
+		for r in range(size):
+			for bc in range(size):
+				for c in range(size):
+					row, col = br * size + r, bc * size + c
+					if grid[row][col]:
+						fill += 1
+						sys.stdout.write(str(grid[row][col]) + ' ')
+					else:
+						sys.stdout.write('. ')
+				if bc != size - 1:
+					sys.stdout.write('| ')
+			sys.stdout.write('\n')
+		if br != 2:
+			for i in range(size ** 2 + 2):
+				sys.stdout.write('- ')
+			sys.stdout.write('\n')
+	sys.stdout.write('Filled ceils ' + str(fill))
+	sys.stdout.write('\n\n')
 
-	# Установка размера ячейки в зависимости от ширины экрана
-	size_ceil = int((WIDTH - START_POINT[0] * 2) / 9)
-	font_size = size_ceil
 
-	screen = pygame.display.set_mode(size)
+def get_row_values(grid, row):
+	return set(grid[row][:])
 
-	size_field = size_ceil * 9
-	field = pygame.Rect(START_POINT[0], START_POINT[1],
-						size_field, size_field)
-	border = {
-		'block': 2,
-		'ceil': 1,
-		'color': BLACK
+
+def get_column_values(grid, column):
+	return {grid[r][column] for r in range(len(grid))}
+
+
+def get_block_values(grid, row, column):
+	size = int(pow(len(grid), 0.5))
+	blockRowStart = size * (row // size)
+	blockColumnStart = size * (column // size)
+	return {
+		grid[blockRowStart + r][blockColumnStart + c]
+		for r in range(size)
+		for c in range(size)
 	}
 
-	s = Sudoku(screen, field, START_POINT, size_ceil, border, size=SIZE)
 
-	pygame.display.update()
+def find_possible_values(grid, row, column):
+	if grid[row][column] == 0:
+		values = {v for v in range(1, len(grid) + 1)}
+		values -= get_row_values(grid, row)
+		values -= get_column_values(grid, column)
+		values -= get_block_values(grid, row, column)
+		return values
+	else:
+		return
 
-	countDecision = 0
-	table = copy.deepcopy(s.table)
-	for solution in s.solve_sudoku(table):
-		print(*solution, sep='/n')
-		countDecision += 1
-	print('Count decisions: ' + str(countDecision))
 
-	while True:
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
+def generate_field(size, difficult):
+	grid = generate_base_field(size)
+
+	mix_field(grid)
+
+	if filled(grid):
+		erase_ceils(grid, difficult)
+		return grid
+	return
+
+
+def generate_base_field(size):
+	grid = [[0 for i in range(size ** 2)] for j in range(size ** 2)]
+	numbers = [i + 1 for i in range(size ** 2)]
+	for brow in range(size):
+		for row in range(size):
+			for bcol in range(size):
+				for col in range(size):
+					r, c = brow * size + row, bcol * size + col
+					if not row and not brow:
+						grid[r][c] = numbers.pop()
+					else:
+						grid[r][c] = grid[r - brow * size - row][(c - size * row - brow) % size ** 2]
+	return grid
+
+
+def mix_field(grid):
+	mix_func = ['swap_big_row(grid)',
+				'swap_big_col(grid)',
+				'swap_small_row(grid)',
+				'swap_small_col(grid)']
+
+	for i in range(1, 30):
+		id_func = r.randrange(0, len(mix_func))
+		eval(mix_func[id_func])
+
+
+def swap_big_row(grid):
+	min_size = int(pow(len(grid), 0.5))
+	
+	row1 = r.randrange(0, min_size)
+	row2 = r.randrange(0, min_size)
+
+	while row1 == row2:
+		row2 = r.randrange(0, min_size)
+
+	for i in range(min_size):
+		grid[row1 * min_size + i], grid[row2 * min_size + i] = \
+			grid[row2 * min_size + i], grid[row1 * min_size + i]
+
+
+def swap_big_col(grid):
+	size = len(grid)
+	min_size = int(pow(size, 0.5))
+
+	col1 = r.randrange(0, min_size)
+	col2 = r.randrange(0, min_size)
+
+	while col1 == col2:
+		col2 = r.randrange(0, min_size)
+
+	for c in range(min_size):
+		for i in range(size):
+			grid[i][col1 * min_size + c], grid[i][col2 * min_size + c] = \
+				grid[i][col2 * min_size + c], grid[i][col1 * min_size + c]
+
+
+def swap_small_row(grid):
+	min_size = int(pow(len(grid), 0.5))
+
+	row = r.randrange(0, min_size)
+	smallRow1 = r.randrange(0, min_size)
+	smallRow2 = r.randrange(0, min_size)
+
+	while smallRow1 == smallRow2:
+		smallRow2 = r.randrange(0, min_size)
+
+	grid[row * min_size + smallRow1], grid[row * min_size + smallRow2] = \
+		grid[row * min_size + smallRow2], grid[row * min_size + smallRow1]
+
+
+def swap_small_col(grid):
+	size = len(grid)
+	min_size = int(pow(size, 0.5))
+
+	col = r.randrange(0, min_size)
+	smallCol1 = r.randrange(0, min_size)
+	smallCol2 = r.randrange(0, min_size)
+
+	while smallCol1 == smallCol2:
+		smallCol2 = r.randrange(0, min_size)
+
+	for i in range(size):
+		grid[i][col * min_size + smallCol1], grid[i][col * min_size + smallCol2] = \
+			grid[i][col * min_size + smallCol2], grid[i][col * min_size + smallCol1]
+
+
+def filled(grid):
+	size = len(grid)
+	for row in range(size):
+		for col in range(size):
+			if not grid[row][col] or \
+					len(get_row_values(grid, row)) != size or \
+					len(get_column_values(grid, col)) != size or \
+					len(get_block_values(grid, row, col)) != size:
 				return False
 
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				mouse_pos = event.pos  # gets mouse position
-
-				# checks if mouse position is over the button
-
-				if field.collidepoint(mouse_pos):
-					# prints current location of mouse
-					ceil = {
-						'row': int((mouse_pos[1] - START_POINT[1]) / size_ceil),
-						'col': int((mouse_pos[0] - START_POINT[0]) / size_ceil)
-					}
-
-					s.activateCeil(ceil)
-					pygame.display.update()
-
-		clock.tick(FPS)
+	return True
 
 
-main()
+def erase_ceils(grid, complication):
+	size = len(grid)
+	diff = r.randrange(complication[0], complication[1])
+	print(size ** 2 - diff)
+	count = 0
+	for i in range(1000):
+		row = r.randrange(0, size)
+		col = r.randrange(0, size)
+		while not grid[row][col]:
+			row = r.randrange(0, size)
+			col = r.randrange(0, size)
 
-pygame.quit()
+		grid_copy = copy.deepcopy(grid)
+		if i > 3:
+			grid_copy[row][col] = 0
+			solver(grid_copy)
+			if filled(grid_copy):
+				grid[row][col] = 0
+				count += 1
+		else:
+			grid[row][col] = 0
+			count += 1
+
+		if count == diff:
+			print('Iterations ' + str(i))
+			return
+
+
+def solver(grid):
+	diff = 1
+	count = count_filled(grid)
+	while diff > 0:
+		if one_choice(grid):
+			return
+
+		if algorithm_with_block(grid):
+			return
+
+		if algorithm_with_row(grid):
+			return
+
+		if algorithm_with_column(grid):
+			return
+
+		curr_count = count_filled(grid)
+		diff = curr_count - count
+		count = curr_count
+
+
+def make_possible_grid(grid):
+	size = len(grid)
+	possible_grid = [[None for i in range(size)] for j in range(size)]
+
+	# Массив со значение False, где не пустая ячейка и с возможными значениями, где пустая
+	for row in range(size):
+		for col in range(size):
+			if grid[row][col]:
+				possible_grid[row][col] = False
+			else:
+				possible_grid[row][col] = find_possible_values(grid, row, col)
+
+	return possible_grid
+
+
+def one_choice(grid):
+	change = True
+	possible_grid = make_possible_grid(grid)
+	while change:
+		change = False
+		for r, row in enumerate(possible_grid):
+			for c, val in enumerate(row):
+				if val:
+					if len(val) == 1:
+						grid[r][c] = val.pop()
+						possible_grid[r][c] = False
+						change = True
+
+	return filled(grid)
+
+
+def last_hero(grid, possible_values):
+	# Просмотр для каждой пустой ячейке блока, есть ли значение которое существует в единственном экземпляре
+	change = False
+	for val in possible_values:
+		pos = val[0]
+		value = val[1].copy()
+		for val in possible_values:
+			if val[0] != pos:
+				value -= val[1]
+			if not len(value):
+				break
+		if len(value) == 1:
+			grid[pos[0]][pos[1]] = value.pop()
+			change = True
+
+	return change
+
+
+def naked_pairs(possible_values):
+	# Добавляем в массив ячейки, уоторые имеют 2 возможных значения
+	pairs = []
+	values = possible_values.copy()
+	for i in range(len(values)):
+		val = values.pop()
+
+		for possible_value in values:
+			if len(val[1]) == 2 and val[0] != possible_value[0] and val[1] == possible_value[1]:
+				pairs.append(val[1])
+
+	for pair in pairs:
+		for possible_value in possible_values:
+			if pair != possible_value[1]:
+				vals = possible_value[1]
+				# print(str(vals) + '-' + str(pair))
+				vals -= pair
+
+
+def algorithm_with_block(grid):
+	size = int(pow(len(grid), 0.5))
+	possible_grid = make_possible_grid(grid)
+
+	# Перебор блоков на возможные значения в них
+	for br in range(size):
+		for bc in range(size):
+			values = {v for v in range(len(grid) + 1)}
+			values -= get_block_values(grid, br * size, bc * size)
+
+			if 0 not in values:
+				possible_val_block = []
+
+				# Запись возможных значений в каждую ячейку блока
+				for r in range(size):
+					for c in range(size):
+						row, col = br * size + r, bc * size + c
+						if not grid[row][col]:
+							possible_val_block.append(((row, col), possible_grid[row][col]))
+
+				# Просмотр для каждой пустой ячейки, есть ли значение которое существует в единственном экземпляре
+				naked_pairs(possible_val_block)
+				last_hero(grid, possible_val_block)
+
+	return filled(grid)
+
+
+def algorithm_with_row(grid):
+	size = len(grid)
+	possible_grid = make_possible_grid(grid)
+
+	# Перебор блоков на возможные значения в них
+	for r in range(size):
+		values = {v for v in range(len(grid) + 1)}
+		values -= get_row_values(grid, r)
+
+		if 0 not in values:
+			possible_val_row = []
+
+			# Запись возможных значений в каждую ячейку строки
+			for c in range(size):
+				if not grid[r][c]:
+					possible_val_row.append(((r, c), possible_grid[r][c]))
+
+			# Просмотр для каждой пустой ячейки, есть ли значение которое существует в единственном экземпляре
+			last_hero(grid, possible_val_row)
+
+	return filled(grid)
+
+
+def algorithm_with_column(grid):
+	size = len(grid)
+	possible_grid = make_possible_grid(grid)
+
+	# Перебор блоков на возможные значения в них
+	for c in range(size):
+		values = {v for v in range(len(grid) + 1)}
+		values -= get_column_values(grid, c)
+
+		if 0 not in values:
+			possible_val_col = []
+
+			# Запись возможных значений в каждую ячейку строки
+			for r in range(size):
+				if not grid[r][c]:
+					possible_val_col.append(((r, c), possible_grid[r][c]))
+
+			# Просмотр для каждой пустой ячейки, есть ли значение которое существует в единственном экземпляре
+			last_hero(grid, possible_val_col)
+
+	return filled(grid)
+
+
+size_grid = 9
+complications = {
+	'easy': (41, 48),
+	'medium': (48, 55),
+	'hard': (55, 61)
+}
+hardest_sudoku = [
+	[0, 0, 5, 3, 0, 0, 0, 0, 0],
+	[8, 0, 0, 0, 0, 0, 0, 2, 0],
+	[0, 7, 0, 0, 1, 0, 5, 0, 0],
+	[4, 0, 0, 0, 0, 5, 3, 0, 0],
+	[0, 1, 0, 0, 7, 0, 0, 0, 6],
+	[0, 0, 3, 2, 0, 0, 0, 8, 0],
+	[0, 6, 0, 5, 0, 0, 0, 0, 9],
+	[0, 0, 4, 0, 0, 0, 0, 3, 0],
+	[0, 0, 0, 0, 0, 9, 7, 0, 0]
+]
+
+main_grid = generate_field(int(pow(size_grid, 0.5)), complications['hard'])
+
+print_grid(main_grid)
+
+solver(main_grid)
+print_grid(main_grid)
