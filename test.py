@@ -1,6 +1,9 @@
 import random as r
 import sys
 import copy
+import time
+
+TEST = True
 
 
 def count_filled(grid):
@@ -75,8 +78,7 @@ def generate_field(size, difficult):
 	mix_field(grid)
 
 	if filled(grid):
-		erase_ceils(grid, difficult)
-		return grid
+		return erase_ceils(grid, difficult)
 	return
 
 
@@ -108,7 +110,7 @@ def mix_field(grid):
 
 def swap_big_row(grid):
 	min_size = int(pow(len(grid), 0.5))
-	
+
 	row1 = r.randrange(0, min_size)
 	row2 = r.randrange(0, min_size)
 
@@ -182,78 +184,188 @@ def filled(grid):
 def erase_ceils(grid, complication):
 	size = len(grid)
 	diff = r.randrange(complication[0], complication[1])
-	print(size ** 2 - diff)
-	count = 0
-	for i in range(1000):
-		row = r.randrange(0, size)
-		col = r.randrange(0, size)
-		while not grid[row][col]:
+
+	print('Difficult must be ' + str(size ** 2 - diff))
+
+	if TEST:
+		for i in range(diff):
 			row = r.randrange(0, size)
 			col = r.randrange(0, size)
+			while not grid[row][col]:
+				row = r.randrange(0, size)
+				col = r.randrange(0, size)
 
-		grid_copy = copy.deepcopy(grid)
-		if i > 3:
-			grid_copy[row][col] = 0
-			solver(grid_copy)
-			if filled(grid_copy):
+			grid[row][col] = 0
+		return grid
+
+	else:
+		count = 0
+		for i in range(500):
+			row = r.randrange(0, size)
+			col = r.randrange(0, size)
+			while not grid[row][col]:
+				row = r.randrange(0, size)
+				col = r.randrange(0, size)
+
+			grid_copy = copy.deepcopy(grid)
+			if i > 3:
+				grid_copy[row][col] = 0
+				solver(grid_copy)
+				if filled(grid_copy):
+					grid[row][col] = 0
+					count += 1
+			else:
 				grid[row][col] = 0
 				count += 1
-		else:
-			grid[row][col] = 0
-			count += 1
 
-		if count == diff:
-			print('Iterations ' + str(i))
-			return
+			if count == diff:
+				print('Iterations ' + str(i))
+				return grid
+
+	return grid
 
 
 def solver(grid):
 	diff = 1
 	count = count_filled(grid)
 	while diff > 0:
+
 		if one_choice(grid):
 			return
+
+		if TEST:
+			print('After one choice filled ' + str(count_filled(grid)))
 
 		if algorithm_with_block(grid):
 			return
 
+		if TEST:
+			print('After block filled ' + str(count_filled(grid)))
+
 		if algorithm_with_row(grid):
 			return
 
+		if TEST:
+			print('After row filled ' + str(count_filled(grid)))
+
 		if algorithm_with_column(grid):
 			return
+
+		if TEST:
+			print('After column filled ' + str(count_filled(grid)))
+			print()
 
 		curr_count = count_filled(grid)
 		diff = curr_count - count
 		count = curr_count
 
 
-def make_possible_grid(grid):
+def make_possible_grid(grid, naked=True):
 	size = len(grid)
-	possible_grid = [[None for i in range(size)] for j in range(size)]
+	possible_grid = [[False for i in range(size)] for j in range(size)]
 
 	# Массив со значение False, где не пустая ячейка и с возможными значениями, где пустая
 	for row in range(size):
 		for col in range(size):
-			if grid[row][col]:
-				possible_grid[row][col] = False
-			else:
-				possible_grid[row][col] = find_possible_values(grid, row, col)
+			if not grid[row][col]:
+				p_vals = find_possible_values(grid, row, col)
+				possible_grid[row][col] = p_vals
+
+	if naked:
+		# Голая пара для строк
+		naked_row(grid, size, possible_grid)
+
+		# Голая пара для колонок
+		naked_column(grid, size, possible_grid)
+
+		# Голая пара для блоков
+		naked_block(grid, int(size ** 0.5), possible_grid)
 
 	return possible_grid
 
 
+def naked_row(grid, size, possible_grid):
+	for r in range(size):
+		values = {v for v in range(len(grid) + 1)}
+		values -= get_row_values(grid, r)
+
+		if 0 not in values:
+			possible_val_row = []
+
+			# Запись возможных значений в каждую ячейку строки
+			for c in range(size):
+				if not grid[r][c]:
+					possible_val_row.append(((r, c), possible_grid[r][c]))
+
+			naked_pairs(possible_val_row)
+
+
+def naked_column(grid, size, possible_grid):
+	for c in range(size):
+		values = {v for v in range(len(grid) + 1)}
+		values -= get_column_values(grid, c)
+
+		if 0 not in values:
+			possible_val_col = []
+
+			# Запись возможных значений в каждую ячейку строки
+			for r in range(size):
+				if not grid[r][c]:
+					possible_val_col.append(((r, c), possible_grid[r][c]))
+
+			naked_pairs(possible_val_col)
+
+
+def naked_block(grid, size, possible_grid):
+	for br in range(size):
+		for bc in range(size):
+			values = {v for v in range(len(grid) + 1)}
+			values -= get_block_values(grid, br * size, bc * size)
+
+			if 0 not in values:
+				possible_val_block = []
+
+				# Запись возможных значений в каждую ячейку блока
+				for r in range(size):
+					for c in range(size):
+						row, col = br * size + r, bc * size + c
+						if not grid[row][col]:
+							possible_val_block.append(((row, col), possible_grid[row][col]))
+
+				naked_pairs(possible_val_block)
+
+
+def naked_pairs(possible_values):
+	# Добавляем в массив ячейки, уоторые имеют 2 возможных значения
+	pairs = []
+	values = possible_values.copy()
+	size = len(values)
+	for i in range(size):
+		val = values.pop()
+
+		if len(val[1]) == 2:
+			for possible_value in values:
+				if val[1] == possible_value[1]:
+					pairs.append(val[1])
+
+	for pair in pairs:
+		for possible_value in possible_values:
+			if pair != possible_value[1]:
+				vals = possible_value[1]
+				# print(str(vals) + '-' + str(pair))
+				vals -= pair
+
+
 def one_choice(grid):
 	change = True
-	possible_grid = make_possible_grid(grid)
 	while change:
 		change = False
+		possible_grid = make_possible_grid(grid)
 		for r, row in enumerate(possible_grid):
 			for c, val in enumerate(row):
 				if val:
 					if len(val) == 1:
 						grid[r][c] = val.pop()
-						possible_grid[r][c] = False
 						change = True
 
 	return filled(grid)
@@ -262,9 +374,9 @@ def one_choice(grid):
 def last_hero(grid, possible_values):
 	# Просмотр для каждой пустой ячейке блока, есть ли значение которое существует в единственном экземпляре
 	change = False
-	for val in possible_values:
-		pos = val[0]
-		value = val[1].copy()
+	for possible_value in possible_values:
+		pos = possible_value[0]
+		value = possible_value[1].copy()
 		for val in possible_values:
 			if val[0] != pos:
 				value -= val[1]
@@ -275,25 +387,6 @@ def last_hero(grid, possible_values):
 			change = True
 
 	return change
-
-
-def naked_pairs(possible_values):
-	# Добавляем в массив ячейки, уоторые имеют 2 возможных значения
-	pairs = []
-	values = possible_values.copy()
-	for i in range(len(values)):
-		val = values.pop()
-
-		for possible_value in values:
-			if len(val[1]) == 2 and val[0] != possible_value[0] and val[1] == possible_value[1]:
-				pairs.append(val[1])
-
-	for pair in pairs:
-		for possible_value in possible_values:
-			if pair != possible_value[1]:
-				vals = possible_value[1]
-				# print(str(vals) + '-' + str(pair))
-				vals -= pair
 
 
 def algorithm_with_block(grid):
@@ -317,8 +410,8 @@ def algorithm_with_block(grid):
 							possible_val_block.append(((row, col), possible_grid[row][col]))
 
 				# Просмотр для каждой пустой ячейки, есть ли значение которое существует в единственном экземпляре
-				naked_pairs(possible_val_block)
-				last_hero(grid, possible_val_block)
+				if last_hero(grid, possible_val_block):
+					one_choice(grid)
 
 	return filled(grid)
 
@@ -341,7 +434,8 @@ def algorithm_with_row(grid):
 					possible_val_row.append(((r, c), possible_grid[r][c]))
 
 			# Просмотр для каждой пустой ячейки, есть ли значение которое существует в единственном экземпляре
-			last_hero(grid, possible_val_row)
+			if last_hero(grid, possible_val_row):
+					possible_grid = make_possible_grid(grid)
 
 	return filled(grid)
 
@@ -364,7 +458,8 @@ def algorithm_with_column(grid):
 					possible_val_col.append(((r, c), possible_grid[r][c]))
 
 			# Просмотр для каждой пустой ячейки, есть ли значение которое существует в единственном экземпляре
-			last_hero(grid, possible_val_col)
+			if last_hero(grid, possible_val_col):
+					possible_grid = make_possible_grid(grid)
 
 	return filled(grid)
 
@@ -387,9 +482,12 @@ hardest_sudoku = [
 	[0, 0, 0, 0, 0, 9, 7, 0, 0]
 ]
 
+tm = time.time()
 main_grid = generate_field(int(pow(size_grid, 0.5)), complications['hard'])
-
 print_grid(main_grid)
+print('Generate field ' + str(time.time()-tm) + ' sec.\n')
 
+tm = time.time()
 solver(main_grid)
 print_grid(main_grid)
+print('Solver field ' + str(time.time()-tm) + ' sec.')
