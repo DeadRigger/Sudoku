@@ -3,7 +3,7 @@ import sys
 import copy
 import time
 
-TEST = True
+TEST = False
 
 
 def count_filled(grid):
@@ -14,7 +14,7 @@ def count_filled(grid):
 			if grid[r][c]:
 				count += 1
 
-	# print('Filled ceils ' + str(count) + '\n')
+	# print('Filled ceil\'s ' + str(count) + '\n')
 	return count
 
 
@@ -28,17 +28,17 @@ def print_grid(grid):
 					row, col = br * size + r, bc * size + c
 					if grid[row][col]:
 						fill += 1
-						sys.stdout.write(str(grid[row][col]) + ' ')
+						sys.stdout.write(str(grid[row][col]) + '\t')
 					else:
-						sys.stdout.write('. ')
+						sys.stdout.write('.\t')
 				if bc != size - 1:
-					sys.stdout.write('| ')
+					sys.stdout.write('|\t')
 			sys.stdout.write('\n')
-		if br != 2:
+		if br != size - 1:
 			for i in range(size ** 2 + 2):
-				sys.stdout.write('- ')
+				sys.stdout.write('-\t')
 			sys.stdout.write('\n')
-	sys.stdout.write('Filled ceils ' + str(fill))
+	sys.stdout.write('Filled ceil\'s ' + str(fill))
 	sys.stdout.write('\n\n')
 
 
@@ -188,19 +188,25 @@ def erase_ceils(grid, complication):
 	print('Difficult must be ' + str(size ** 2 - diff))
 
 	if TEST:
-		for i in range(diff):
-			row = r.randrange(0, size)
-			col = r.randrange(0, size)
-			while not grid[row][col]:
+		while True:
+			copy_copy = copy.deepcopy(grid)
+			for i in range(diff):
 				row = r.randrange(0, size)
 				col = r.randrange(0, size)
+				while not copy_copy[row][col]:
+					row = r.randrange(0, size)
+					col = r.randrange(0, size)
 
-			grid[row][col] = 0
-		return grid
+				copy_copy[row][col] = 0
+			grid_copy = copy.deepcopy(copy_copy)
+			if solver(copy_copy):
+				break
+
+		return grid_copy
 
 	else:
 		count = 0
-		for i in range(500):
+		for i in range(100):
 			row = r.randrange(0, size)
 			col = r.randrange(0, size)
 			while not grid[row][col]:
@@ -210,8 +216,7 @@ def erase_ceils(grid, complication):
 			grid_copy = copy.deepcopy(grid)
 			if i > 3:
 				grid_copy[row][col] = 0
-				solver(grid_copy)
-				if filled(grid_copy):
+				if solver(grid_copy):
 					grid[row][col] = 0
 					count += 1
 			else:
@@ -219,10 +224,8 @@ def erase_ceils(grid, complication):
 				count += 1
 
 			if count == diff:
-				print('Iterations ' + str(i))
+				print('Iterations:\n\t(main)' + str(i))
 				return grid
-
-	return grid
 
 
 def solver(grid):
@@ -231,36 +234,28 @@ def solver(grid):
 	while diff > 0:
 
 		if one_choice(grid):
-			return
-
-		if TEST:
-			print('After one choice filled ' + str(count_filled(grid)))
+			return True
 
 		if algorithm_with_block(grid):
-			return
-
-		if TEST:
-			print('After block filled ' + str(count_filled(grid)))
+			return True
 
 		if algorithm_with_row(grid):
-			return
-
-		if TEST:
-			print('After row filled ' + str(count_filled(grid)))
+			return True
 
 		if algorithm_with_column(grid):
-			return
+			return True
 
 		if TEST:
-			print('After column filled ' + str(count_filled(grid)))
 			print()
 
 		curr_count = count_filled(grid)
 		diff = curr_count - count
 		count = curr_count
 
+	return False
 
-def make_possible_grid(grid, naked=True):
+
+def make_possible_grid(grid, naked=False):
 	size = len(grid)
 	possible_grid = [[False for i in range(size)] for j in range(size)]
 
@@ -366,7 +361,13 @@ def one_choice(grid):
 				if val:
 					if len(val) == 1:
 						grid[r][c] = val.pop()
+						if TEST:
+							print(str((r, c)) + ': ' + str(grid[r][c]))
 						change = True
+
+	if TEST:
+		print('After one choice filled ' + str(count_filled(grid)))
+		print()
 
 	return filled(grid)
 
@@ -384,6 +385,8 @@ def last_hero(grid, possible_values):
 				break
 		if len(value) == 1:
 			grid[pos[0]][pos[1]] = value.pop()
+			if TEST:
+				print(str(pos) + ': ' + str(grid[pos[0]][pos[1]]))
 			change = True
 
 	return change
@@ -413,6 +416,10 @@ def algorithm_with_block(grid):
 				if last_hero(grid, possible_val_block):
 					one_choice(grid)
 
+	if TEST:
+		print('After block filled ' + str(count_filled(grid)))
+		print()
+
 	return filled(grid)
 
 
@@ -436,6 +443,10 @@ def algorithm_with_row(grid):
 			# Просмотр для каждой пустой ячейки, есть ли значение которое существует в единственном экземпляре
 			if last_hero(grid, possible_val_row):
 					possible_grid = make_possible_grid(grid)
+
+	if TEST:
+		print('After row filled ' + str(count_filled(grid)))
+		print()
 
 	return filled(grid)
 
@@ -461,6 +472,10 @@ def algorithm_with_column(grid):
 			if last_hero(grid, possible_val_col):
 					possible_grid = make_possible_grid(grid)
 
+	if TEST:
+		print('After column filled ' + str(count_filled(grid)))
+		print()
+
 	return filled(grid)
 
 
@@ -481,6 +496,7 @@ hardest_sudoku = [
 	[0, 0, 4, 0, 0, 0, 0, 3, 0],
 	[0, 0, 0, 0, 0, 9, 7, 0, 0]
 ]
+
 
 tm = time.time()
 main_grid = generate_field(int(pow(size_grid, 0.5)), complications['hard'])
