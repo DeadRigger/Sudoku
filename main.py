@@ -1,6 +1,7 @@
 from sudoku import Sudoku
 from pygame.locals import *
 from functions import *
+from threading import Thread
 
 
 def display():
@@ -26,17 +27,14 @@ class Menu:
 					'easy': {
 						'rect': (panel.x + self.margin_left, panel.y, self.width_block, self.height_block),
 						'draw': 'drawCenterText(screen, "EASY", self.menu["new"]["submenu"]["easy"]["rect"])',
-						'func': 'self.changeLevel("easy")'
 					},
 					'medium': {
 						'rect': (panel.x + self.margin_left * 2, panel.y, self.width_block, self.height_block),
 						'draw': 'drawCenterText(screen, "MEDIUM", self.menu["new"]["submenu"]["medium"]["rect"])',
-						'func': 'self.changeLevel("medium")'
 					},
 					'hard': {
 						'rect': (panel.x + self.margin_left * 3, panel.y, self.width_block, self.height_block),
 						'draw': 'drawCenterText(screen, "HARD", self.menu["new"]["submenu"]["hard"]["rect"])',
-						'func': 'self.changeLevel("hard")'
 					},
 				}
 			},
@@ -66,8 +64,7 @@ class Menu:
 		self.display(point)
 
 	def changeLevel(self, difficult):
-		s.difficult = difficult
-		s.generate()
+		s.generate_field(s.min_size, DIFFICULTY_LIST[difficult])
 		for point in self.menu.keys():
 			self.menu[point]['show_submenu'] = False
 		display()
@@ -81,7 +78,7 @@ class Menu:
 			for subpoint in self.menu[point]['submenu'].keys():
 				rect = self.menu[point]['submenu'][subpoint]['rect']
 				if rect[0] <= mouse_pos[0] <= rect[0] + rect[2] and rect[1] <= mouse_pos[1] <= rect[1] + rect[3]:
-					eval(self.menu[point]['submenu'][subpoint]['func'])
+					self.changeLevel(subpoint)
 					return
 
 
@@ -155,7 +152,7 @@ while True:
 						int((mouse_pos[0] - START_POINT[0]) / size_ceil)]
 
 				s.activateCeil(ceil)
-				possVal = s.findPossibleValues(s.table, ceil[0], ceil[1])
+				possVal = s.find_possible_values(s.table, ceil[0], ceil[1])
 				if possVal:
 					print(possVal)
 				pygame.display.update()
@@ -169,3 +166,4 @@ while True:
 				pygame.display.update()
 
 	clock.tick(FPS)
+	pygame.display.update()

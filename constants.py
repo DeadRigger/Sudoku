@@ -19,9 +19,9 @@ START_POINT = (10, 80)
 HEIGHT = 500
 WIDTH = HEIGHT - START_POINT[1] * 2 + START_POINT[0] * 2
 DIFFICULTY_LIST = {
-	'easy': (30, 40),
-	'medium': (25, 30),
-	'hard': (0, 25)
+	'easy': ((33, 40), 72),
+	'medium': ((26, 33), 102),
+	'hard': ((20, 26), 175)
 }
 FONT = {
 	'name': 'Comic San',
