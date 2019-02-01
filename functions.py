@@ -40,3 +40,30 @@ def drawCenterText(screen, text, rect, font=FONT, color=BASE_COLOR_FONT):
     pos_num_x = rect[0] + (rect[2] - number.get_width()) / 2
     pos_num_y = rect[1] + (rect[3] - number.get_height()) / 2
     screen.blit(number, (pos_num_x, pos_num_y))
+
+
+class Button:
+    def __init__(self, screen, rect, text=None, bg=WHITE, border=BLACK, text_color=BLACK,
+                 font={'name': 'Comic San', 'size': 25}):
+        self.screen = screen
+        self.x = rect[0]
+        self.y = rect[1]
+        self.width = rect[2]
+        self.height = rect[3]
+        self.rect = rect
+        self.text = text
+        self.background = bg
+        self.border = border
+        self.color = text_color
+        self.font = font
+
+    def draw(self):
+        font = pygame.font.SysFont(self.font['name'], self.font['size'])
+        text = font.render(str(self.text), True, self.color)
+
+        pygame.draw.rect(self.screen, self.background, self.rect)
+        pygame.draw.rect(self.screen, self.border, self.rect, 1)
+
+        pos_x = self.x + (self.width - text.get_width()) / 2
+        pos_y = self.y + (self.height - text.get_height()) / 2
+        self.screen.blit(text, (pos_x, pos_y))

@@ -1,76 +1,75 @@
-import pygame
-from constants import *
+from functions import *
 
 
 class Menu:
-    def __init__(self, screen):
-        self.open = False
-        self.screen = screen
-        self.menu = pygame.Surface((576, 100))
-        self.menu.fill(WHITE)
+	def __init__(self, screen, panel):
+		self.open = False
+		self.screen = screen
+		self.panel = panel
+		self.width_block = panel.w / 5
+		self.margin_left = panel.w / 4
+		self.height_block = panel.h * 2/3
+		self.menu = {
+			'new': {
+				'rect': (panel.x, panel.y, self.width_block, self.height_block),
+				'draw': 'Button(self.screen, self.menu["new"]["rect"], "NEW").draw()',
+				'show_submenu': False,
+				'submenu': {
+					'easy': {
+						'rect': (panel.x + self.margin_left, panel.y, self.width_block, self.height_block),
+						'draw': 'Button(self.screen, self.menu["new"]["submenu"]["easy"]["rect"], "EASY").draw()',
+					},
+					'medium': {
+						'rect': (panel.x + self.margin_left * 2, panel.y, self.width_block, self.height_block),
+						'draw': 'Button(self.screen, self.menu["new"]["submenu"]["medium"]["rect"], "MEDIUM").draw()',
+					},
+					'hard': {
+						'rect': (panel.x + self.margin_left * 3, panel.y, self.width_block, self.height_block),
+						'draw': 'Button(self.screen, self.menu["new"]["submenu"]["hard"]["rect"], "HARD").draw()',
+					},
+				}
+			},
+		}
 
-        pygame.font.init()
-        font = pygame.font.SysFont(font_name, 25)
-        self.new = font.render('New', False, BLACK)
-        self.easy = font.render('Easy', False, BLACK)
-        self.medium = font.render('Medium', False, BLACK)
-        self.hard = font.render('Hard', False, BLACK)
+	def display(self, point=None):
+		pygame.draw.rect(self.screen, BACKGROUND, self.panel)
+		pygame.font.init()
 
-    def display(self):
-        self.menu.blit(self.new, (35, 25))
-        pygame.draw.rect(self.menu, GRAY,
-                         (self.new.get_rect()[0] + 35, self.new.get_rect()[1] + 25,
-                          self.new.get_rect()[2], self.new.get_rect()[3]), 1)
-        self.screen.blit(self.menu, (0, 0))
+		for pnt in self.menu.keys():
+			eval(self.menu[pnt]['draw'])
 
-    def show(self):
-        # Draw item easy level
-        pos_x = 35 + self.new.get_rect()[2] + 5
-        pos_y = 25
-        self.menu.blit(self.easy, (pos_x, pos_y))
-        pygame.draw.rect(self.menu, GRAY, (pos_x, pos_y, self.easy.get_rect()[2], self.easy.get_rect()[3]), 1)
+		if point is not None:
+			if not self.menu[point]['show_submenu']:
+				self.menu[point]['show_submenu'] = True
+				for subpoint in self.menu[point]['submenu'].keys():
+					eval(self.menu[point]['submenu'][subpoint]['draw'])
+			else:
+				self.menu[point]['show_submenu'] = False
 
-        # Draw item medium level
-        pos_x += self.easy.get_rect()[2] + 5
-        self.menu.blit(self.medium, (pos_x, pos_y))
-        pygame.draw.rect(self.menu, GRAY, (pos_x, pos_y, self.medium.get_rect()[2], self.medium.get_rect()[3]), 1)
+	def show(self, point):
+		if self.open:
+			self.open = False
+		else:
+			self.open = True
 
-        # Draw item hard level
-        pos_x += self.medium.get_rect()[2] + 5
-        self.menu.blit(self.hard, (pos_x, pos_y))
-        pygame.draw.rect(self.menu, GRAY, (pos_x, pos_y, self.hard.get_rect()[2], self.hard.get_rect()[3]), 1)
+		self.display(point=point)
 
-        self.open = True
-        self.display()
-        pygame.display.update()
+	def changeLevel(self, difficult, sudoku):
+		sudoku.generate_field(sudoku.min_size, DIFFICULTY_LIST[difficult])
+		for point in self.menu.keys():
+			self.menu[point]['show_submenu'] = False
+		self.open = False
+		self.display()
 
-    def hide(self):
-        self.menu.fill(WHITE)
-        self.open = False
-        self.display()
-        pygame.display.update()
-
-    def change_level(self, pos_click):
-        global difficulty
-        pos = (35 + self.new.get_rect()[2] + 5, 25)
-        print('Rect easy: ' + str(pos) + str((pos[0] + self.easy.get_rect()[2], pos[1] + self.easy.get_rect()[3])) +
-              ', click position: ' + str(pos_click))
-        if pos <= pos_click <= (pos[0] + self.easy.get_rect()[2], pos[1] + self.easy.get_rect()[3]):
-            difficulty = 'easy'
-            return True
-
-        pos = (pos[0] + self.easy.get_rect()[2] + 5, pos[1])
-        print('Rect medium: ' + str(pos) + str((pos[0] + self.easy.get_rect()[2], pos[1] + self.easy.get_rect()[3])) +
-              ', click position: ' + str(pos_click))
-        if pos <= pos_click <= (pos[0] + self.medium.get_rect()[2], pos[1] + self.medium.get_rect()[3]):
-            difficulty = 'medium'
-            return True
-
-        pos = (pos[0] + self.medium.get_rect()[2] + 5, pos[1])
-        print('Rect hard: ' + str(pos) + str((pos[0] + self.easy.get_rect()[2], pos[1] + self.easy.get_rect()[3])) +
-              ', click position: ' + str(pos_click))
-        if pos <= pos_click <= (pos[0] + self.hard.get_rect()[2], pos[1] + self.hard.get_rect()[3]):
-            difficulty = 'hard'
-            return True
-
-        return False
+	def collide(self, mouse_pos, sudoku):
+		for point in self.menu.keys():
+			rect = self.menu[point]['rect']
+			if rect[0] <= mouse_pos[0] <= rect[0] + rect[2] and rect[1] <= mouse_pos[1] <= rect[1] + rect[3]:
+				self.show(point)
+				return
+			if self.open:
+				for subpoint in self.menu[point]['submenu'].keys():
+					rect = self.menu[point]['submenu'][subpoint]['rect']
+					if rect[0] <= mouse_pos[0] <= rect[0] + rect[2] and rect[1] <= mouse_pos[1] <= rect[1] + rect[3]:
+						self.changeLevel(subpoint, sudoku)
+						return 'new game'

@@ -22,6 +22,7 @@ class Sudoku:
 		self.width = size_ceil * size
 		self.active_ceil = None
 		self.difficult = DIFFICULTY_LIST[DIFFICULTY]
+		self.start_table = []
 		self.table = []
 		self.generate_field(size, self.difficult)
 
@@ -100,6 +101,7 @@ class Sudoku:
 			result = self.erase_ceils(grid, difficult)
 			self.print_grid(result)
 			print('Generate field ' + str(time.time() - tm) + ' sec.\n')
+			self.start_table = copy.deepcopy(result)
 			self.table = result
 		else:
 			print("Поле судоку сгенерировано неправильно")
@@ -224,11 +226,11 @@ class Sudoku:
 				else:
 					grid_copy[row][col] = 0
 
-			count = self.count_filled(grid_copy)
-			if complication[0][0] <= count < complication[0][1]:
-				print('Difficult is ' + str(count))
-				print('Iterations:\n\t(main)' + str(main_i) + '\n\t(sub)' + str(i))
-				return grid_copy
+				count = self.count_filled(grid_copy)
+				if complication[0][0] <= count < complication[0][1]:
+					print('Difficult is ' + str(count))
+					print('Iterations:\n\t(main)' + str(main_i) + '\n\t(sub)' + str(i))
+					return grid_copy
 
 	def solver(self, grid):
 		diff = 1
@@ -452,14 +454,14 @@ class Sudoku:
 	def activateCeil(self, ceil, number=None):
 		if ceil is not None:
 			self.active_ceil = ceil
-			if number:
+			if number and not self.start_table[ceil[0]][ceil[1]]:
 				print(str(ceil) + ': ' + str(number))
 				if self.table[ceil[0]][ceil[1]] == number:
-					self.table[ceil[0]][ceil[1]] = None
+					self.table[ceil[0]][ceil[1]] = 0
 				else:
 					self.table[ceil[0]][ceil[1]] = number
 
-			self.drawField(self.table)
+			return self.drawField(self.table)
 
 	def drawField(self, field):
 		pygame.draw.rect(self.screen, BACKGROUND_FIELD, self.field)  # draw field
@@ -474,6 +476,7 @@ class Sudoku:
 		if self.filled(field):
 			font = {'name': FONT['name'], 'size': int(self.size_ceil * 9 / 4)}
 			self.drawText('Winner', START_POINT, self.size_ceil * 9, font, color=GREEN)
+			return True
 
 	def drawBlock(self, start_point, block_row, block_col, size, field):
 		self.drawCeil(start_point, size, self.border['block'])
@@ -494,7 +497,7 @@ class Sudoku:
 
 				self.drawCeil(pos, self.size_ceil, self.border['ceil'])
 				if number:
-					if not self.table[ceil[0]][ceil[1]]:
+					if not self.start_table[ceil[0]][ceil[1]]:
 						grid = copy.deepcopy(field)
 						grid[ceil[0]][ceil[1]] = 0
 						possibleValues = self.find_possible_values(grid, ceil[0], ceil[1])

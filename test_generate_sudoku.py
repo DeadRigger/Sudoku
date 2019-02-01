@@ -19,6 +19,8 @@ def count_filled(grid):
 
 
 def print_grid(grid):
+	if not isinstance(grid, list):
+		return
 	fill = 0
 	size = int(pow(len(grid), 0.5))
 	for br in range(size):
@@ -220,6 +222,7 @@ def erase_ceils(grid, complication):
 			print('Test iteration with ' + str(e) + ' erases: average result ' + str(avg_filled / 10))
 	else:
 		while True:
+			difficult = r.randrange(complication[0][0], complication[0][1])
 			main_i += 1
 			grid_copy = copy.deepcopy(grid)
 			for i in range(complication[1]):
@@ -230,18 +233,15 @@ def erase_ceils(grid, complication):
 					col = r.randrange(0, size)
 
 				copy_copy = copy.deepcopy(grid_copy)
-				if i > 3:
-					copy_copy[row][col] = 0
-					if solver(copy_copy):
-						grid_copy[row][col] = 0
-				else:
+				copy_copy[row][col] = 0
+				if solver(copy_copy):
 					grid_copy[row][col] = 0
 
-			count = count_filled(grid_copy)
-			if complication[0][0] <= count < complication[0][1]:
-				print('Difficult is ' + str(count))
-				print('Iterations:\n\t(main)' + str(main_i) + '\n\t(sub)' + str(i))
-				return grid_copy
+				count = count_filled(grid_copy)
+				if count == difficult:
+					print('Difficult is ' + str(count))
+					print('Iterations:\n\t(main)' + str(main_i) + '\n\t(sub)' + str(i))
+					return grid_copy
 
 
 def solver(grid):
@@ -265,6 +265,15 @@ def solver(grid):
 		diff = curr_count - count
 		count = curr_count
 
+	# for r in range(len(grid)):
+	# 	for c in range(len(grid)):
+	# 		if not grid[r][c]:
+	# 			for val in find_possible_values(grid, r, c):
+	# 				grid_copy = copy.deepcopy(grid)
+	# 				grid_copy[r][c] = val
+	# 				if solver(grid_copy):
+	# 					grid = grid_copy
+	# 					return True
 	return False
 
 
