@@ -1,85 +1,147 @@
-import time
-import sys
+from kivy.app import App
+from kivy.graphics.vertex_instructions import Line
 
-from test_generate_sudoku import generate_field, print_grid, solver, filled
+from constants import *
 
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.button import Button
+from kivy.uix.dropdown import DropDown
+from kivy.uix.label import Label
+from kivy.uix.widget import Widget
 
-def convert_array(array):
-	if isinstance(array, list):
-		s = ''
-		for row in array:
-			for num in row:
-				s += str(num)
-		return s
-	else:
-		size = int(len(array) ** 0.5)
-		l = [[0 for i in range(size)]for j in range(size)]
-		for row in range(size):
-			for col in range(size):
-				l[row][col] = array[row * 9 + col]
-		return l
+from kivy.properties import ListProperty
+from kivy.properties import NumericProperty
 
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
 
-def same_row(i, j):
-	return int(i / 9) == int(j / 9)
+from random import random
+from test_generate_sudoku import generate_field, find_possible_values
 
+from kivy.config import Config
 
-def same_col(i, j):
-	return (i - j) % 9 == 0
+Config.set("graphics", "resizable", 0)
+Config.set("graphics", "width", 320)
+Config.set("graphics", "height", 640)
+Config.set("graphics", "maxfps", 30)
 
 
-def same_block(i, j):
-	return int(i / 27) == int(j / 27) and int(i % 9 / 3) == int(j % 9 / 3)
+class Cell(ToggleButton):
+	coords = ListProperty()
 
 
-def r(a):
-	i = a.find('0')
-	if i == -1:
-		table = convert_array(a)
-		if filled(table):
-			return table
-		print("No correct field")
-		return
+class Grid(GridLayout):
+	def __init__(self, size, **kwargs):
+		super().__init__(**kwargs)
 
-	excluded_numbers = set()
-	for j in range(81):
-		if same_row(i, j) or same_col(i, j) or same_block(i, j):
-			excluded_numbers.add(a[j])
+		# Field
+		self.active_ceil = None
+		self.field = generate_field(size, DIFFICULTY_LIST[DIFFICULTY])
+		count_number = self.cols
 
-	for m in '123456789':
-		if m not in excluded_numbers:
-			grid = r(a[:i] + m + a[i + 1:])
-			if grid is not None:
-				return grid
+		for r in range(count_number):
+			for c in range(count_number):
+				if self.field[r][c]:
+					text = str(self.field[r][c])
+				else:
+					text = ""
+
+				cell = Cell(
+					coords=(r, c),
+					text=text,
+					group='field',
+					background_normal='',
+					background_color=[1, 1, 1, 1],
+					color=[0, 0, 0, 1],
+					on_press=self.click
+				)
+
+				self.add_widget(cell)
+
+		# Keyboard
+		for i in range(count_number):
+			self.add_widget(Widget())
+
+		for i in range(count_number):
+			self.add_widget(Button(text=str(i + 1), on_press=self.entry))
+
+	def generate(self, difficult):
+		self.clear_widgets()
+		self.active_ceil = None
+		self.field = generate_field(int(self.cols ** 0.5), DIFFICULTY_LIST[difficult])
+		count_number = self.cols
+
+		for r in range(count_number):
+			for c in range(count_number):
+				if self.field[r][c]:
+					text = str(self.field[r][c])
+				else:
+					text = ""
+
+				self.add_widget(Cell(
+					coords=(r, c),
+					text=text,
+					group='field',
+					background_normal='',
+					background_color=[1, 1, 1, 1],
+					color=[0, 0, 0, 1],
+					on_press=self.click
+				))
+
+		for i in range(count_number):
+			self.add_widget(Widget())
+
+		for i in range(count_number):
+			self.add_widget(Button(text=str(i + 1), on_press=self.entry))
+
+	def click(self, instance):
+		self.active_ceil = instance
+		print(find_possible_values(self.field, self.active_ceil.coords[0], self.active_ceil.coords[1]))
+
+	def entry(self, instance):
+		if self.active_ceil is not None:
+			if self.active_ceil.text == instance.text:
+				self.active_ceil.text = ''
+				self.field[self.active_ceil.coords[0]][self.active_ceil.coords[1]] = 0
+			else:
+				self.active_ceil.text = instance.text
+				self.field[self.active_ceil.coords[0]][self.active_ceil.coords[1]] = int(instance.text)
+		print(instance.text)
 
 
-size_grid = 9
-complications = {
-	'easy': ((33, 40), 72),
-	'medium': ((26, 33), 102),
-	'hard': ((20, 26), 175)
-}
+class TestApp(App):
+	def build(self):
+		size_field = 3
+		bl = BoxLayout(orientation="vertical", padding=25)
 
-tm_enum = 0
-tm_smart = 0
+		# Menu
+		dd = DropDown()
+		easy = Button(text="Easy", size_hint=(0.25, None), height=44)
+		easy.bind(on_release=lambda text: dd.select(easy.text))
+		dd.add_widget(easy)
+		medium = Button(text="Medium", size_hint=(0.25, None), height=44)
+		medium.bind(on_release=lambda text: dd.select(medium.text))
+		dd.add_widget(medium)
+		hard = Button(text="Hard", size_hint=(0.25, None), height=44)
+		hard.bind(on_release=lambda text: dd.select(hard.text))
+		dd.add_widget(hard)
 
-tm = time.time()
-main_grid = generate_field(int(pow(size_grid, 0.5)), complications['hard'])
-print_grid(main_grid)
-print('Generate field ' + str(time.time() - tm) + ' sec.\n')
+		menu = Button(text="New game", on_release=dd.open, padding=(0, 15), size_hint=(0.25, None), height=44)
 
-# test_str = convert_array(main_grid)
-#
-# tm = time.time()
-# result = r(test_str)
-# print_grid(result)
-# tm_enum += time.time() - tm
-# print('Solver field ' + str(tm_enum) + ' sec.\n')
+		menu.add_widget(dd)
 
-tm = time.time()
-solver(main_grid)
-print_grid(main_grid)
-tm_smart += time.time() - tm
-print('Solver field ' + str(tm_smart) + ' sec.\n')
+		self.gl = Grid(size=size_field, cols=size_field ** 2, size_hint=(1, 0.8))
 
-print('Ratio:\n\tenum/algorithm ' + str(tm_enum / tm_smart))
+		bl.add_widget(menu)
+		bl.add_widget(self.gl)
+
+		dd.bind(on_select=self.new_game)
+		return bl
+
+	def new_game(self, instance, text):
+		print(text.lower())
+		self.gl.generate(text.lower())
+
+
+if __name__ == "__main__":
+	TestApp().run()

@@ -222,7 +222,6 @@ def erase_ceils(grid, complication):
 			print('Test iteration with ' + str(e) + ' erases: average result ' + str(avg_filled / 10))
 	else:
 		while True:
-			difficult = r.randrange(complication[0][0], complication[0][1])
 			main_i += 1
 			grid_copy = copy.deepcopy(grid)
 			for i in range(complication[1]):
@@ -233,14 +232,18 @@ def erase_ceils(grid, complication):
 					col = r.randrange(0, size)
 
 				copy_copy = copy.deepcopy(grid_copy)
-				copy_copy[row][col] = 0
-				if solver(copy_copy):
+				if i > 3:
+					copy_copy[row][col] = 0
+					if solver(copy_copy):
+						grid_copy[row][col] = 0
+				else:
 					grid_copy[row][col] = 0
 
 				count = count_filled(grid_copy)
-				if count == difficult:
+				if complication[0][0] <= count < complication[0][1]:
 					print('Difficult is ' + str(count))
 					print('Iterations:\n\t(main)' + str(main_i) + '\n\t(sub)' + str(i))
+					print_grid(grid_copy)
 					return grid_copy
 
 
