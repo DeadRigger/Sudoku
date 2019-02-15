@@ -1,0 +1,35 @@
+<BoxLayout>
+    canvas:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<Cell>
+    group: 'field'
+    background_normal: ''
+    background_color: [1, 1, 1, 1]
+    font_size: 20
+
+<Button>
+    background_normal: ''
+    background_color: [1, 1, 1, 1]
+    color: [0, 0, 0, 1]
+    font_size: 20
+
+<Grid>
+    canvas.before:
+        Color:
+            rgba: 0, 0, 0, 1
+        Rectangle:
+            pos: self.x - 3, self.y - 3 + self.height * 0.1666666666666667 + 4
+            size: self.width + 6, self.height + 6 - self.height * 0.1666666666666667 - 4
+
+<DropDown>
+    canvas:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size

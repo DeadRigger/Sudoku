@@ -19,6 +19,7 @@ START_POINT = (10, 80)
 HEIGHT = 500
 WIDTH = HEIGHT - START_POINT[1] * 2 + START_POINT[0] * 2
 DIFFICULTY_LIST = {
+	'very easy': ((40, 70), 20),
 	'easy': ((33, 40), 72),
 	'medium': ((26, 33), 102),
 	'hard': ((20, 26), 175)
@@ -27,8 +28,12 @@ FONT = {
 	'name': 'Comic San',
 	'size': 30
 }
-DIFFICULTY = 'easy'
+DIFFICULTY = 'very easy'
 SIZE = 3
+
+IDENTICAL_NUMBER = True
+DISABLE_KEY_NUMBER = True
+HIGHLIGHT_POSSIBLE_VALUES = True
 
 COLOR_EDIT_NUM = BLUE
 COLOR_ACTIVE_CEIL = GRAY
