@@ -1,75 +1,50 @@
-from functions import *
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.dropdown import DropDown
 
 
-class Menu:
-	def __init__(self, screen, panel):
-		self.open = False
-		self.screen = screen
-		self.panel = panel
-		self.width_block = panel.w / 5
-		self.margin_left = panel.w / 4
-		self.height_block = panel.h * 2/3
-		self.menu = {
-			'new': {
-				'rect': (panel.x, panel.y, self.width_block, self.height_block),
-				'draw': 'Button(self.screen, self.menu["new"]["rect"], "NEW").draw()',
-				'show_submenu': False,
-				'submenu': {
-					'easy': {
-						'rect': (panel.x + self.margin_left, panel.y, self.width_block, self.height_block),
-						'draw': 'Button(self.screen, self.menu["new"]["submenu"]["easy"]["rect"], "EASY").draw()',
-					},
-					'medium': {
-						'rect': (panel.x + self.margin_left * 2, panel.y, self.width_block, self.height_block),
-						'draw': 'Button(self.screen, self.menu["new"]["submenu"]["medium"]["rect"], "MEDIUM").draw()',
-					},
-					'hard': {
-						'rect': (panel.x + self.margin_left * 3, panel.y, self.width_block, self.height_block),
-						'draw': 'Button(self.screen, self.menu["new"]["submenu"]["hard"]["rect"], "HARD").draw()',
-					},
-				}
-			},
-		}
+class Menu(BoxLayout):
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		self.dd = DropDown()
 
-	def display(self, point=None):
-		pygame.draw.rect(self.screen, BACKGROUND, self.panel)
-		pygame.font.init()
+		self.dd.dismiss()
 
-		for pnt in self.menu.keys():
-			eval(self.menu[pnt]['draw'])
+		new = Button(
+			text="New",
+			background_normal='',
+    		background_down='',
+			background_color=[1, 1, 1, 1],
+			color=[0, 0, 0, 1],
+			on_release=self.dd.open
+		)
 
-		if point is not None:
-			if not self.menu[point]['show_submenu']:
-				self.menu[point]['show_submenu'] = True
-				for subpoint in self.menu[point]['submenu'].keys():
-					eval(self.menu[point]['submenu'][subpoint]['draw'])
-			else:
-				self.menu[point]['show_submenu'] = False
+		easy = Button(
+			text="easy", size_hint=(0.25, None), height=44,
+			background_normal='',
+			background_color=[1, 1, 1, 1],
+			color=[0, 0, 0, 1],
+			on_release=lambda text: self.dd.select(easy.text)
+		)
+		self.dd.add_widget(easy)
 
-	def show(self, point):
-		if self.open:
-			self.open = False
-		else:
-			self.open = True
+		medium = Button(
+			text="medium", size_hint=(0.25, None), height=44,
+			background_normal='',
+			background_color=[1, 1, 1, 1],
+			color=[0, 0, 0, 1],
+			on_release=lambda text: self.dd.select(medium.text)
+		)
+		self.dd.add_widget(medium)
 
-		self.display(point=point)
+		hard = Button(
+			text="hard", size_hint=(0.25, None), height=44,
+			background_normal='',
+			background_color=[1, 1, 1, 1],
+			color=[0, 0, 0, 1],
+			on_release=lambda text: self.dd.select(hard.text)
+		)
+		self.dd.add_widget(hard)
 
-	def changeLevel(self, difficult, sudoku):
-		sudoku.generate_field(sudoku.min_size, DIFFICULTY_LIST[difficult])
-		for point in self.menu.keys():
-			self.menu[point]['show_submenu'] = False
-		self.open = False
-		self.display()
-
-	def collide(self, mouse_pos, sudoku):
-		for point in self.menu.keys():
-			rect = self.menu[point]['rect']
-			if rect[0] <= mouse_pos[0] <= rect[0] + rect[2] and rect[1] <= mouse_pos[1] <= rect[1] + rect[3]:
-				self.show(point)
-				return
-			if self.open:
-				for subpoint in self.menu[point]['submenu'].keys():
-					rect = self.menu[point]['submenu'][subpoint]['rect']
-					if rect[0] <= mouse_pos[0] <= rect[0] + rect[2] and rect[1] <= mouse_pos[1] <= rect[1] + rect[3]:
-						self.changeLevel(subpoint, sudoku)
-						return 'new game'
+		new.add_widget(self.dd)
+		self.add_widget(new)

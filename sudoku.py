@@ -1,30 +1,172 @@
 import copy
 import random as r
-from functions import *
-from itertools import product
-import pygame
+import sys
+
+from kivy.properties import ListProperty
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
+from kivy.uix.modalview import ModalView
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.button import Button
+from kivy.uix.widget import Widget
+
+from constants import *
 import time
 
 
-class Sudoku:
-	"""docstring for Sudoku"""
+class Cell(ToggleButton):
+	coords = ListProperty()
 
-	def __init__(self, screen, field, position, size_ceil, border, size=3):
-		super(Sudoku, self).__init__()
-		self.screen = screen
-		self.field = field
-		self.start_point = position
-		self.size_ceil = size_ceil
-		self.min_size = size
-		self.size = size ** 2
-		self.border = border
-		self.height = size_ceil * size
-		self.width = size_ceil * size
+
+class Grid(GridLayout):
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		self.numbers = None
 		self.active_ceil = None
-		self.difficult = DIFFICULTY_LIST[DIFFICULTY]
-		self.start_table = []
-		self.table = []
-		self.generate_field(size, self.difficult)
+		self.field = None
+		self.possible_grid = None
+		self.edit_cells = None
+
+	def generate(self, difficult):
+		self.clear_widgets()
+
+		# Field
+		size = self.cols ** 2
+		size_block = self.cols
+		self.active_ceil = None
+		self.field = self.generate_field(size_block, DIFFICULTY_LIST[difficult])
+		self.possible_grid = self.make_possible_grid(self.field)
+		self.edit_cells = []
+		for r in range(size):
+			row = []
+			for c in range(size):
+				if not self.possible_grid[r][c]:
+					row.append(False)
+				else:
+					row.append(True)
+			self.edit_cells.append(row)
+
+		for b in range(size):
+			block = GridLayout(cols=3, spacing=2)
+			for n in range(size):
+				pos = (
+					b // size_block * size_block + n // size_block,
+					b % size_block * size_block + n % size_block
+				)
+
+				if self.field[pos[0]][pos[1]]:
+					text = str(self.field[pos[0]][pos[1]])
+				else:
+					text = ""
+
+				if self.edit_cells[pos[0]][pos[1]]:
+					color = [0, 0, 1, 1]
+				else:
+					color = [0, 0, 0, 1]
+
+				block.add_widget(Cell(
+					coords=(pos[0], pos[1]),
+					text=text,
+					color=color,
+					on_press=self.click
+				))
+			self.add_widget(block)
+
+		# Virtual keyboard
+		for i in range(size_block):
+			self.add_widget(Widget(size_hint_y=0.3))
+
+		for i in range(size_block):
+			bl = BoxLayout(spacing=4, size_hint_y=0.3)
+			for j in range(size_block):
+				bl.add_widget(Button(
+					text=str(i * size_block + j + 1),
+					on_press=self.entry
+				))
+			self.add_widget(bl)
+
+		if DISABLE_KEY_NUMBER: self.disabled_numbers()
+
+	# Called when touch on a grid cell
+	def click(self, instance):
+		self.active_ceil = instance
+		self.possible_grid = self.make_possible_grid(self.field)
+
+		if IDENTICAL_NUMBER: self.identical_number()
+
+		if HIGHLIGHT_POSSIBLE_VALUES and self.edit_cells[instance.coords[0]][instance.coords[1]]:
+			self.highlighting()
+
+	# Called when touch the virtual keyboard
+	def entry(self, instance):
+		if self.active_ceil is not None and \
+				self.edit_cells[self.active_ceil.coords[0]][self.active_ceil.coords[1]]:
+			r = self.active_ceil.coords[0]
+			c = self.active_ceil.coords[1]
+			if self.active_ceil.text == instance.text:
+				self.active_ceil.text = ''
+				self.field[r][c] = 0
+			else:
+				self.active_ceil.text = instance.text
+				self.field[r][c] = int(instance.text)
+
+			if self.active_ceil.text and int(self.active_ceil.text) not in self.possible_grid[r][c]:
+				self.active_ceil.color = [1, 0, 0, 1]
+			else:
+				self.active_ceil.color = [0, 0, 1, 1]
+
+			# Highlights the numbers that correspond to the active cell
+			if IDENTICAL_NUMBER: self.identical_number()
+
+			# Disables buttons on the keyboard that are not needed for filling
+			if DISABLE_KEY_NUMBER: self.disabled_numbers()
+
+			# Show popup that display you are winner
+			if self.filled(self.field):
+				popup = ModalView(size_hint=(0.5, 0.5))
+				popup.add_widget(Label(text="WINNER", color=[0, 1, 0, 1], font_size=36, bold=True))
+				popup.open()
+
+	def identical_number(self):
+		if self.active_ceil.text:
+			cells = ToggleButton.get_widgets('field')
+			for cell in cells:
+				if cell.text == self.active_ceil.text:
+					cell.state = "down"
+				else:
+					cell.state = "normal"
+
+	def disabled_numbers(self):
+		self.count_numbers()
+		for bl in self.children:
+			if type(bl) == BoxLayout:
+				for btn in bl.children:
+					if self.numbers[int(btn.text) - 1] == self.cols ** 2:
+						btn.disabled = True
+					else:
+						btn.disabled = False
+
+	def count_numbers(self):
+		self.numbers = [0 for i in range(9)]
+		cells = ToggleButton.get_widgets('field')
+		for cell in cells:
+			if cell.text:
+				self.numbers[int(cell.text) - 1] += 1
+
+	def highlighting(self):
+		try:
+			for bl in self.children:
+				if type(bl) == BoxLayout:
+					for btn in bl.children:
+						r = self.active_ceil.coords[0]
+						c = self.active_ceil.coords[1]
+						if int(btn.text) in self.possible_grid[r][c]:
+							btn.state = 'down'
+						else:
+							btn.state = 'normal'
+		except TypeError:
+			pass
 
 	# Generate
 	@staticmethod
@@ -101,8 +243,7 @@ class Sudoku:
 			result = self.erase_ceils(grid, difficult)
 			self.print_grid(result)
 			print('Generate field ' + str(time.time() - tm) + ' sec.\n')
-			self.start_table = copy.deepcopy(result)
-			self.table = result
+			return result
 		else:
 			print("Поле судоку сгенерировано неправильно")
 			exit(2)
@@ -449,79 +590,3 @@ class Sudoku:
 					possible_grid = self.make_possible_grid(grid)
 
 		return self.filled(grid)
-
-	# Display
-	def activateCeil(self, ceil, number=None):
-		if ceil is not None:
-			self.active_ceil = ceil
-			if number and not self.start_table[ceil[0]][ceil[1]]:
-				print(str(ceil) + ': ' + str(number))
-				if self.table[ceil[0]][ceil[1]] == number:
-					self.table[ceil[0]][ceil[1]] = 0
-				else:
-					self.table[ceil[0]][ceil[1]] = number
-
-			return self.drawField(self.table)
-
-	def drawField(self, field):
-		pygame.draw.rect(self.screen, BACKGROUND_FIELD, self.field)  # draw field
-
-		for row in range(self.min_size):
-			for col in range(self.min_size):
-				size_block = self.size_ceil * self.min_size
-				start_point = (self.start_point[0] + col * size_block,
-							   self.start_point[1] + row * size_block)
-				self.drawBlock(start_point, row, col, size_block, field)
-
-		if self.filled(field):
-			font = {'name': FONT['name'], 'size': int(self.size_ceil * 9 / 4)}
-			self.drawText('Winner', START_POINT, self.size_ceil * 9, font, color=GREEN)
-			return True
-
-	def drawBlock(self, start_point, block_row, block_col, size, field):
-		self.drawCeil(start_point, size, self.border['block'])
-
-		for row in range(self.min_size):
-			for col in range(self.min_size):
-				pos = (start_point[0] + col * self.size_ceil,
-					   start_point[1] + row * self.size_ceil)
-				ceil = [block_row * self.min_size + row, block_col * self.min_size + col]
-
-				if self.active_ceil is not None:
-					active_number = field[self.active_ceil[0]][self.active_ceil[1]]
-					if self.active_ceil == ceil or \
-							(active_number and field[ceil[0]][ceil[1]] == active_number):
-						self.drawCeil(pos, self.size_ceil, border=0)
-
-				number = field[ceil[0]][ceil[1]]
-
-				self.drawCeil(pos, self.size_ceil, self.border['ceil'])
-				if number:
-					if not self.start_table[ceil[0]][ceil[1]]:
-						grid = copy.deepcopy(field)
-						grid[ceil[0]][ceil[1]] = 0
-						possibleValues = self.find_possible_values(grid, ceil[0], ceil[1])
-						if number in possibleValues:
-							self.drawText(number, pos, self.size_ceil, FONT, color=COLOR_EDIT_NUM)
-						else:
-							self.drawText(number, pos, self.size_ceil, FONT, color=RED)
-					else:
-						self.drawText(number, pos, self.size_ceil, FONT)
-
-	def drawCeil(self, start_point, size, border=1):
-		if not border:
-			pygame.draw.rect(self.screen, COLOR_ACTIVE_CEIL,
-							 (start_point[0], start_point[1],
-							  size, size))
-		else:
-			pygame.draw.rect(self.screen, self.border['color'],
-							 (start_point[0], start_point[1],
-							  size, size),
-							 border)
-
-	def drawText(self, text, start_point, size_ceil, font, color=BASE_COLOR_FONT):
-		font = pygame.font.SysFont(font['name'], font['size'])
-		number = font.render(str(text), True, color)
-		pos_num_x = start_point[0] + (size_ceil - number.get_width()) / 2
-		pos_num_y = start_point[1] + (size_ceil - number.get_height()) / 2
-		self.screen.blit(number, (pos_num_x, pos_num_y))
