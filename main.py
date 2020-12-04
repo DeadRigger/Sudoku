@@ -18,20 +18,28 @@ class MainLayout(BoxLayout):
 
 class SudokuApp(App):
 	def build(self):
+		main_layout = MainLayout(orientation="vertical", padding=25)
+
 		self.title = "Sudoku"
 		self.size_field = 3
-		bl = MainLayout(orientation="vertical", padding=25)
-
-		self.menu = Menu(padding=(0, 0, 0, 15), size_hint=(0.25, 0.1))
+		self.menu = Menu(padding=(0, 0, 0, 15), size_hint=(1, 0.1))
 		self.grid = Grid(cols=self.size_field, spacing=4, size_hint=(1, 0.9))
 		self.grid.generate(DIFFICULTY)
 
-		bl.add_widget(self.menu)
-		bl.add_widget(self.grid)
+		# Add widgets on the main layout
+		main_layout.add_widget(self.menu)
+		main_layout.add_widget(self.grid)
 
-		self.menu.dd.bind(on_select=lambda instance, text: self.grid.generate(text))
+		# Binds
+		self.menu.easy.bind(on_release=lambda button: self.menu_button(button.text))
+		self.menu.medium.bind(on_release=lambda button: self.menu_button(button.text))
+		self.menu.hard.bind(on_release=lambda button: self.menu_button(button.text))
 
-		return bl
+		return main_layout
+
+	def menu_button(self, text):
+		self.grid.generate(text.lower())
+		self.menu.popmenu.dismiss()
 
 
 if __name__ == "__main__":

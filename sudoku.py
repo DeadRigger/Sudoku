@@ -31,7 +31,6 @@ class Grid(GridLayout):
 	def generate(self, difficult):
 		self.clear_widgets()
 
-		# Field
 		size = self.cols ** 2
 		size_block = self.cols
 		self.active_ceil = None
