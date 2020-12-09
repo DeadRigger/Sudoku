@@ -58,7 +58,7 @@ class Menu(BoxLayout):
 		self.popmenu.add_widget(layout_menu)
 		self.add_widget(layout)
 
-		Clock.schedule_interval(self.increase_time, 1)
+		self.timer = Clock.schedule_interval(self.increase_time, 1)
 
 	def increase_time(self, dt):
 		t = self.time.text.split(":")
@@ -76,3 +76,6 @@ class Menu(BoxLayout):
 			else:
 				minute = str(minute)
 			self.time.text = minute + ":00"
+
+	def stop_timer(self):
+		self.timer.cancel()

@@ -27,6 +27,7 @@ class Grid(GridLayout):
 		self.field = None
 		self.possible_grid = None
 		self.edit_cells = None
+		self.sudoku_solution = False
 
 	def generate(self, difficult):
 		self.clear_widgets()
@@ -123,6 +124,7 @@ class Grid(GridLayout):
 
 			# Show popup that display you are winner
 			if self.filled(self.field):
+				self.sudoku_solution = True
 				popup = ModalView(size_hint=(0.5, 0.5))
 				popup.add_widget(Label(text="WINNER", color=[0, 1, 0, 1], font_size=36, bold=True))
 				popup.open()
